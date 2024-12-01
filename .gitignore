@@ -30,7 +30,7 @@ venv/
 ENV/
 pomodoro-venv
 web-server/pomodoro-venv
-
+fast_notes.txt
 # Database
 *.sqlite3
 *.db

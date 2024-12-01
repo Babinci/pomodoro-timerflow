@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pomodoro Timer</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="/static/styles.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div id="app" class="container mx-auto px-4 py-8">
+        <!-- Login Form -->
+        <div id="loginForm" class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md mb-8">
+            <h2 class="text-2xl font-bold mb-4">Login</h2>
+            <input type="email" id="email" placeholder="Email" class="w-full p-2 mb-4 border rounded">
+            <input type="password" id="password" placeholder="Password" class="w-full p-2 mb-4 border rounded">
+            <button onclick="login()" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Login</button>
+        </div>
+
+        <!-- Main App (hidden until login) -->
+        <div id="mainApp" class="hidden">
+            <!-- Timer -->
+            <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md mb-8">
+                <div class="text-center">
+                    <h1 id="timer" class="text-6xl font-bold mb-4">25:00</h1>
+                    <p id="sessionType" class="text-xl mb-4">Work Session</p>
+                    <div class="flex justify-center space-x-4 mb-4">
+                        <button id="startBtn" class="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600">Start</button>
+                        <button id="pauseBtn" class="bg-yellow-500 text-white px-6 py-2 rounded hover:bg-yellow-600 hidden">Pause</button>
+                        <button id="resetBtn" class="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600">Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Section -->
+            <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md mb-8">
+                <h2 class="text-2xl font-bold mb-4">Current Task</h2>
+                <div class="mb-4">
+                    <input type="text" id="taskTitle" placeholder="Task Title" class="w-full p-2 mb-2 border rounded">
+                    <input type="number" id="estimatedPomodoros" placeholder="Estimated Pomodoros" class="w-full p-2 mb-2 border rounded">
+                    <button onclick="createTask()" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Add Task</button>
+                </div>
+                <div id="taskList" class="space-y-2"></div>
+            </div>
+
+            <!-- Settings -->
+            <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold mb-4">Settings</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <h3 class="font-bold mb-2">Short</h3>
+                        <input type="number" id="shortWork" placeholder="Work (min)" class="w-full p-2 mb-2 border rounded">
+                        <input type="number" id="shortBreak" placeholder="Break (min)" class="w-full p-2 mb-2 border rounded">
+                        <input type="number" id="shortLongBreak" placeholder="Long Break (min)" class="w-full p-2 mb-2 border rounded">
+                    </div>
+                    <div>
+                        <h3 class="font-bold mb-2">Long</h3>
+                        <input type="number" id="longWork" placeholder="Work (min)" class="w-full p-2 mb-2 border rounded">
+                        <input type="number" id="longBreak" placeholder="Break (min)" class="w-full p-2 mb-2 border rounded">
+                        <input type="number" id="longLongBreak" placeholder="Long Break (min)" class="w-full p-2 mb-2 border rounded">
+                    </div>
+                </div>
+                <button onclick="saveSettings()" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 mt-4">Save Settings</button>
+            </div>
+        </div>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>
