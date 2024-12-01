@@ -9,6 +9,9 @@ import json
 from . import models, schemas, auth
 from .database import engine, get_db
 from .ws_manager import manager
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -22,6 +25,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/")
+async def read_root():
+    return FileResponse("static/index.html")
+
 
 # Auth routes
 @app.post("/token", response_model=schemas.Token)
@@ -44,9 +54,15 @@ async def login_for_access_token(
 
 @app.post("/users/", response_model=schemas.User)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = auth.get_user(db, email=user.email)
+    # Check if email exists
+    db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Check if username exists
+    db_user = db.query(models.User).filter(models.User.username == user.username).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Username already taken")
     
     db_user = models.User(
         email=user.email,
