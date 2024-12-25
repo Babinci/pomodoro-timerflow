@@ -1,3 +1,4 @@
+// static/app.js
 let token = localStorage.getItem('token');
 let currentTask = null;
 let timerInterval = null;
@@ -7,92 +8,98 @@ let sessionType = 'work';
 let currentSessionNumber = 1;
 let ws = null;
 
-// Show/hide main app based on stored token
+// Initialize login form handler and check login state
 document.addEventListener('DOMContentLoaded', () => {
-    if (token) {
-        document.getElementById('loginForm').classList.add('hidden');
-        document.getElementById('mainApp').classList.remove('hidden');
-        initializeWebSocket();
-        loadTasks();
-    }
-});
-
-async function login() {
-    const email = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value.trim();
-
-    // Validate input fields
-    if (!email || !password) {
-        alert('Please enter both email and password');
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append('username', email);
-    formData.append('password', password);
-
-    try {
-        const response = await fetch('/token', {
-            method: 'POST',
-            body: formData
-        });
-
-        // Handle non-200 responses explicitly
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Login failed');
-        }
-
-        const data = await response.json();
-        
-        // Validate that we received a token
-        if (!data.access_token) {
-            throw new Error('No access token received');
-        }
-
-        // Store token and user info
-        token = data.access_token;
-        localStorage.setItem('token', token);
-        
-        // Show main app
-        document.getElementById('loginForm').classList.add('hidden');
-        document.getElementById('mainApp').classList.remove('hidden');
-        
-        // Initialize app
-        initializeWebSocket();
-        loadTasks();
-    } catch (error) {
-        alert(error.message);
-        // Clear any stored credentials on error
-        localStorage.removeItem('token');
-    }
-}
-
-// Check login state on page load
-document.addEventListener('DOMContentLoaded', () => {
-    const storedToken = localStorage.getItem('token');
+    const loginForm = document.getElementById('loginFormElement');
     
-    if (storedToken) {
-        // Verify token is still valid
+    loginForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
+        const errorDiv = document.getElementById('loginError');
+
+        try {
+            // Create form data matching OAuth2PasswordRequestForm expectations
+            const formData = new URLSearchParams();
+            formData.append('username', email);
+            formData.append('password', password);
+            // Required OAuth2 parameters
+            formData.append('grant_type', '');
+            formData.append('scope', '');
+            formData.append('client_id', '');
+            formData.append('client_secret', '');
+            
+            const response = await fetch('/token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'accept': 'application/json'
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.detail || 'Login failed');
+            }
+            
+            if (!data.access_token) {
+                throw new Error('No access token received');
+            }
+
+            // Store token
+            token = data.access_token;
+            localStorage.setItem('token', token);
+            
+            // Switch views
+            const loginFormDiv = document.getElementById('loginForm');
+            const mainAppDiv = document.getElementById('mainApp');
+            
+            if (loginFormDiv && mainAppDiv) {
+                loginFormDiv.style.display = 'none';
+                mainAppDiv.style.display = 'block';
+            } else {
+                console.error('Required elements not found');
+            }
+            
+            // Initialize app state
+            initializeWebSocket();
+            loadTasks();
+            
+        } catch (error) {
+            console.error('Login error:', error);
+            errorDiv.textContent = error.message;
+            errorDiv.classList.remove('hidden');
+            localStorage.removeItem('token');
+        }
+    });
+
+    // Check if we already have a token
+    if (token) {
         fetch('/verify-token', {
             headers: {
-                'Authorization': `Bearer ${storedToken}`
+                'Authorization': `Bearer ${token}`
             }
         }).then(response => {
             if (!response.ok) {
                 throw new Error('Invalid token');
             }
-            token = storedToken;
-            document.getElementById('loginForm').classList.add('hidden');
-            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
             initializeWebSocket();
             loadTasks();
         }).catch(error => {
-            // Token invalid - remove it and show login form
             localStorage.removeItem('token');
             token = null;
         });
     }
+
+    // Initialize timer buttons
+    document.getElementById('startBtn').onclick = startTimer;
+    document.getElementById('pauseBtn').onclick = pauseTimer;
+    document.getElementById('resetBtn').onclick = resetTimer;
 });
 
 // Task Management
@@ -218,9 +225,6 @@ function renderTasks() {
                     <p class="text-sm text-gray-600">
                         ${task.completed_pomodoros}/${task.estimated_pomodoros} Pomodoros
                     </p>
-                    <div class="task-progress">
-                        <div class="task-progress-bar" style="width: ${(task.completed_pomodoros / task.estimated_pomodoros) * 100}%"></div>
-                    </div>
                 </div>
                 <div class="flex space-x-2">
                     ${index > 0 ? `
@@ -245,7 +249,11 @@ function renderTasks() {
 
 function selectTask(taskId) {
     currentTask = tasks.find(t => t.id === taskId);
-    document.getElementById('currentTaskName').textContent = currentTask ? currentTask.title : 'No task selected';
+    // Update UI to show selected task
+    if (currentTask) {
+        const session = document.getElementById('sessionType');
+        session.textContent = `Work Session - ${currentTask.title}`;
+    }
 }
 
 // Timer Functions
@@ -254,10 +262,9 @@ function updateTimerDisplay() {
     const seconds = timeLeft % 60;
     const display = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     document.getElementById('timer').textContent = display;
-    
-    // Update title for tab
     document.title = `${display} - Pomodoro`;
 }
+
 
 function startTimer() {
     if (!isRunning) {
@@ -298,7 +305,6 @@ function pauseTimer() {
         document.getElementById('startBtn').classList.remove('hidden');
         document.getElementById('pauseBtn').classList.add('hidden');
 
-        // Notify other devices about pause via WebSocket
         if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({
                 type: 'pause_session'
@@ -308,7 +314,6 @@ function pauseTimer() {
 }
 
 function resetTimer() {
-    // Reset timer to initial work session duration
     isRunning = false;
     clearInterval(timerInterval);
     sessionType = 'work';
@@ -321,14 +326,16 @@ function resetTimer() {
 }
 
 function handleSessionComplete() {
-    // Stop the current timer
     clearInterval(timerInterval);
     isRunning = false;
 
-    // Play notification sound and show browser notification
-    playSound('break');
-    sendNotification('Pomodoro Timer', 
-        `${sessionType === 'work' ? 'Work session' : 'Break'} completed!`);
+    // Play notification sound if implemented
+    // playSound('break');
+
+    // Send browser notification
+    if (Notification.permission === "granted") {
+        new Notification(`${sessionType === 'work' ? 'Work session' : 'Break'} completed!`);
+    }
 
     // Notify server about session completion
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -343,7 +350,6 @@ function handleSessionComplete() {
 
     // Update session type and timer duration
     if (sessionType === 'work') {
-        // After work session, determine break type
         if (currentSessionNumber % 4 === 0) {
             sessionType = 'long_break';
             timeLeft = 15 * 60; // 15 minutes for long break
@@ -352,7 +358,6 @@ function handleSessionComplete() {
             timeLeft = 5 * 60; // 5 minutes for short break
         }
     } else {
-        // After any break, start new work session
         sessionType = 'work';
         timeLeft = 25 * 60;
         if (sessionType === 'long_break') {
@@ -361,13 +366,11 @@ function handleSessionComplete() {
             currentSessionNumber++;
         }
 
-        // Update task progress if one is selected
         if (currentTask) {
             updateTaskProgress(currentTask.id);
         }
     }
 
-    // Update displays
     updateTimerDisplay();
     updateSessionTypeDisplay();
     document.getElementById('startBtn').classList.remove('hidden');
@@ -379,7 +382,6 @@ async function updateTaskProgress(taskId) {
         const task = tasks.find(t => t.id === taskId);
         if (!task) return;
 
-        // Increment completed pomodoros
         const response = await fetch(`/tasks/${taskId}`, {
             method: 'PUT',
             headers: {
@@ -394,7 +396,6 @@ async function updateTaskProgress(taskId) {
 
         if (!response.ok) throw new Error('Failed to update task progress');
 
-        // Update local task list and re-render
         const updatedTask = await response.json();
         tasks = tasks.map(t => t.id === taskId ? updatedTask : t);
         renderTasks();
@@ -406,40 +407,36 @@ async function updateTaskProgress(taskId) {
 function updateSessionTypeDisplay() {
     const sessionTypeElement = document.getElementById('sessionType');
     let displayText = '';
-    let className = '';
 
     switch (sessionType) {
         case 'work':
-            displayText = 'Work Session';
-            className = 'work';
+            displayText = currentTask ? `Work Session - ${currentTask.title}` : 'Work Session';
             break;
         case 'short_break':
             displayText = 'Short Break';
-            className = 'break';
             break;
         case 'long_break':
             displayText = 'Long Break';
-            className = 'long-break';
             break;
     }
 
     sessionTypeElement.textContent = displayText;
-    sessionTypeElement.className = className;
 }
 
 // WebSocket Connection Management
 function initializeWebSocket() {
-    // Close existing connection if any
     if (ws) {
         ws.close();
     }
 
-    // Create new WebSocket connection
-    ws = new WebSocket(`ws://${window.location.host}/ws/${token}`);
+    // Get user ID from the JWT token
+    const tokenData = JSON.parse(atob(token.split('.')[1]));
+    const userId = tokenData.sub; // assuming user ID is stored in the 'sub' claim
+
+    ws = new WebSocket(`ws://${window.location.host}/ws/${userId}`);
 
     ws.onopen = () => {
         console.log('WebSocket connected');
-        // Request current session state if any
         ws.send(JSON.stringify({ type: 'get_session_state' }));
     };
 
@@ -450,7 +447,6 @@ function initializeWebSocket() {
 
     ws.onclose = () => {
         console.log('WebSocket disconnected. Attempting to reconnect...');
-        // Attempt to reconnect after a delay
         setTimeout(initializeWebSocket, 3000);
     };
 
@@ -462,7 +458,6 @@ function initializeWebSocket() {
 function handleWebSocketMessage(data) {
     switch (data.type) {
         case 'session_started':
-            // Sync with remote timer state
             timeLeft = data.data.remaining_time;
             sessionType = data.data.session_type;
             currentSessionNumber = data.data.current_session;
@@ -478,7 +473,6 @@ function handleWebSocketMessage(data) {
             break;
 
         case 'session_state':
-            // Update local state with server state
             if (data.data.active_session) {
                 timeLeft = data.data.remaining_time;
                 sessionType = data.data.session_type;
@@ -490,5 +484,38 @@ function handleWebSocketMessage(data) {
                 }
             }
             break;
+    }
+}
+
+// Settings functions
+async function saveSettings() {
+    const settings = {
+        short_cycle: {
+            work_duration: parseInt(document.getElementById('shortWork').value),
+            break_duration: parseInt(document.getElementById('shortBreak').value),
+            long_break_duration: parseInt(document.getElementById('shortLongBreak').value)
+        },
+        long_cycle: {
+            work_duration: parseInt(document.getElementById('longWork').value),
+            break_duration: parseInt(document.getElementById('longBreak').value),
+            long_break_duration: parseInt(document.getElementById('longLongBreak').value)
+        }
+    };
+
+    try {
+        const response = await fetch('/users/settings', {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(settings)
+        });
+
+        if (!response.ok) throw new Error('Failed to save settings');
+        
+        alert('Settings saved successfully');
+    } catch (error) {
+        alert('Failed to save settings: ' + error.message);
     }
 }

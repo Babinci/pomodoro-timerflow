@@ -30,6 +30,8 @@ venv/
 ENV/
 pomodoro-venv
 web-server/pomodoro-venv
+web-server/static/app_commented.js
+web-server/static/brython_example.py
 fast_notes.txt
 # Database
 *.sqlite3

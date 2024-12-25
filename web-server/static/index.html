@@ -1,3 +1,4 @@
+<!-- static/index.html -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -8,21 +9,19 @@
 <body class="bg-gray-100">
     <div id="app" class="container mx-auto px-4 py-8">
         <!-- Login Form -->
-        <div id="loginForm" class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md mb-8">
+        <div id="loginForm">
             <h2 class="text-2xl font-bold mb-4">Login</h2>
-            <form id="loginFormElement" onsubmit="handleLogin(event)">
+            <form id="loginFormElement" method="POST">
                 <div id="loginError" class="hidden mb-4 p-2 text-red-600 bg-red-100 rounded"></div>
                 <input 
                     type="email" 
                     id="email" 
-                    name="email"
-                    placeholder="Email" 
-                    required
-                    class="w-full p-2 mb-4 border rounded">
+                    name="username"  <!-- Important: name must be "username" for OAuth2 -->
+            
                 <input 
                     type="password" 
                     id="password"
-                    name="password" 
+                    name="password"
                     placeholder="Password" 
                     required
                     class="w-full p-2 mb-4 border rounded">
@@ -51,7 +50,7 @@
 
             <!-- Task Section -->
             <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md mb-8">
-                <h2 class="text-2xl font-bold mb-4">Current Task</h2>
+                <h2 class="text-2xl font-bold mb-4">Tasks</h2>
                 <div class="mb-4">
                     <input type="text" id="taskTitle" placeholder="Task Title" class="w-full p-2 mb-2 border rounded">
                     <input type="number" id="estimatedPomodoros" placeholder="Estimated Pomodoros" class="w-full p-2 mb-2 border rounded">

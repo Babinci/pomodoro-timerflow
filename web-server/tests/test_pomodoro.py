@@ -19,9 +19,9 @@ class MockWebSocket:
     async def accept(self):
         pass
 
-def test_websocket_connection(client, test_user_token):
+def test_websocket_connection(client, test_user, test_user_token):
     """Test WebSocket connection establishment"""
-    with client.websocket_connect(f"/ws/{test_user_token}") as websocket:
+    with client.websocket_connect(f"/ws/{test_user['id']}") as websocket:
         # Send a test message
         websocket.send_json({
             "type": "start_session",

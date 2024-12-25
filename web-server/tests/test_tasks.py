@@ -5,7 +5,7 @@ def test_create_task(client, test_user_token):
     """Test creating a new task"""
     response = client.post(
         "/tasks/",
-        headers={"Authorization": f"Bearer {test_user_token}"},
+        headers=test_user_token,  # Use the fixture directly
         json={
             "title": "Test Task",
             "description": "Test Description",
