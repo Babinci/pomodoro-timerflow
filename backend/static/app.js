@@ -1,4 +1,5 @@
 // static/app.js
+// to deprecate as we are moving it to react native
 let token = localStorage.getItem('token');
 let currentTask = null;
 let timerInterval = null;
@@ -7,6 +8,8 @@ let isRunning = false;
 let sessionType = 'work';
 let currentSessionNumber = 1;
 let ws = null;
+let currentSettings = null;
+let currentPreset = 'short'; // 'short' or 'long'
 
 // Initialize login form handler and check login state
 document.addEventListener('DOMContentLoaded', () => {
@@ -90,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('mainApp').style.display = 'block';
             initializeWebSocket();
             loadTasks();
+            loadSettings();
         }).catch(error => {
             localStorage.removeItem('token');
             token = null;
@@ -100,7 +104,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('startBtn').onclick = startTimer;
     document.getElementById('pauseBtn').onclick = pauseTimer;
     document.getElementById('resetBtn').onclick = resetTimer;
+    document.getElementById('shortPreset').onclick = () => switchPreset('short');
+    document.getElementById('longPreset').onclick = () => switchPreset('long');
 });
+
+
 
 // Task Management
 let tasks = [];
@@ -325,6 +333,48 @@ function resetTimer() {
     document.getElementById('pauseBtn').classList.add('hidden');
 }
 
+// Add this function to load settings
+async function loadSettings() {
+    try {
+        const response = await fetch('/users/settings', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (!response.ok) throw new Error('Failed to load settings');
+        currentSettings = await response.json();
+        updateTimerDurations();
+    } catch (error) {
+        console.error('Failed to load settings:', error);
+    }
+}
+
+// Add this function to switch presets
+function switchPreset(preset) {
+    currentPreset = preset;
+    updateTimerDurations();
+    // Only reset timer if it's not running
+    if (!isRunning) {
+        resetTimer();
+    }
+}
+
+// Update timer durations based on current preset
+function updateTimerDurations() {
+    if (!currentSettings) return;
+    
+    const settings = currentSettings[currentPreset];
+    if (sessionType === 'work') {
+        timeLeft = settings.work_duration * 60;
+    } else if (sessionType === 'short_break') {
+        timeLeft = settings.short_break * 60;
+    } else if (sessionType === 'long_break') {
+        timeLeft = settings.long_break * 60;
+    }
+    updateTimerDisplay();
+}
+
+
 function handleSessionComplete() {
     clearInterval(timerInterval);
     isRunning = false;
@@ -348,18 +398,20 @@ function handleSessionComplete() {
         }));
     }
 
+    const settings = currentSettings[currentPreset];
+    
     // Update session type and timer duration
     if (sessionType === 'work') {
-        if (currentSessionNumber % 4 === 0) {
+        if (currentSessionNumber % settings.sessions_before_long_break === 0) {
             sessionType = 'long_break';
-            timeLeft = 15 * 60; // 15 minutes for long break
+            timeLeft = settings.long_break * 60;
         } else {
             sessionType = 'short_break';
-            timeLeft = 5 * 60; // 5 minutes for short break
+            timeLeft = settings.short_break * 60;
         }
     } else {
         sessionType = 'work';
-        timeLeft = 25 * 60;
+        timeLeft = settings.work_duration * 60;
         if (sessionType === 'long_break') {
             currentSessionNumber = 1;
         } else {
@@ -437,7 +489,10 @@ function initializeWebSocket() {
 
     ws.onopen = () => {
         console.log('WebSocket connected');
-        ws.send(JSON.stringify({ type: 'get_session_state' }));
+        ws.send(JSON.stringify({ 
+            type: 'get_session_state',
+            data: { preset: currentPreset }
+        }));
     };
 
     ws.onmessage = (event) => {
@@ -461,6 +516,7 @@ function handleWebSocketMessage(data) {
             timeLeft = data.data.remaining_time;
             sessionType = data.data.session_type;
             currentSessionNumber = data.data.current_session;
+            currentPreset = data.data.preset;
             if (!isRunning) startTimer();
             break;
 
@@ -477,6 +533,7 @@ function handleWebSocketMessage(data) {
                 timeLeft = data.data.remaining_time;
                 sessionType = data.data.session_type;
                 currentSessionNumber = data.data.current_session;
+                currentPreset = data.data.preset;
                 updateTimerDisplay();
                 updateSessionTypeDisplay();
                 if (data.data.is_running && !isRunning) {
