@@ -27,26 +27,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# @app.middleware("http")
-# async def add_no_cache_headers(request, call_next):
-#     response = await call_next(request)
-#     if "text/html" in response.headers.get("content-type", ""):
-#         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-#         response.headers["Pragma"] = "no-cache"
-#         response.headers["Expires"] = "0"
-#     return response
-
-# @app.get("/")
-# async def read_root():
-#     response = FileResponse("static/index.html")
-#     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-#     response.headers["Pragma"] = "no-cache"
-#     response.headers["Expires"] = "0"
-#     return response
-
-
 @app.post("/token")
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
