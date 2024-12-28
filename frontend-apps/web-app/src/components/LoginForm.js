@@ -1,21 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { apiConfig } from '../config/api';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
+import { styles } from '../styles/styles';
 
 export default function LoginForm({ setToken }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     try {
       const formData = new URLSearchParams();
       formData.append('username', email);
       formData.append('password', password);
-      formData.append('grant_type', '');
-      formData.append('scope', '');
-      formData.append('client_id', '');
-      formData.append('client_secret', '');
+      formData.append('grant_type', 'password');
       
       const response = await fetch(`${apiConfig.baseUrl}/token`, {
         method: 'POST',
@@ -45,77 +44,32 @@ export default function LoginForm({ setToken }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
-      {error && (
-        <Text style={styles.error}>{error}</Text>
-      )}
-      <View style={styles.form}>
+      <View style={styles.card}>
+        <Text style={styles.title}>Login</Text>
+        {error ? (
+          <View style={[styles.card, { backgroundColor: '#FEE2E2' }]}>
+            <Text style={{ color: '#DC2626' }}>{error}</Text>
+          </View>
+        ) : null}
         <TextInput
+          style={styles.input}
           value={email}
           onChangeText={setEmail}
           placeholder="Email"
           keyboardType="email-address"
           autoCapitalize="none"
-          style={styles.input}
         />
         <TextInput
+          style={styles.input}
           value={password}
           onChangeText={setPassword}
           placeholder="Password"
           secureTextEntry
-          style={styles.input}
         />
-        <TouchableOpacity
-          onPress={handleSubmit}
-          style={styles.button}>
+        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
           <Text style={styles.buttonText}>Login</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-    backgroundColor: 'var(--clickup-background)',
-    maxWidth: 400,
-    marginHorizontal: 'auto',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: 'var(--clickup-text)',
-  },
-  form: {
-    gap: 16,
-  },
-  input: {
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: 'var(--clickup-border)',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-  button: {
-    backgroundColor: 'var(--clickup-primary)',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  error: {
-    color: 'var(--clickup-danger)',
-    backgroundColor: '#FFE5E5',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-  }
-});

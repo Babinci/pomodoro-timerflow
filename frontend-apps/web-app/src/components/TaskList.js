@@ -1,6 +1,7 @@
 // src/components/TaskList.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { styles, colors } from '../styles/styles';
 import { apiConfig } from '../config/api';
 
 export default function TaskList({ token, currentTask, setCurrentTask }) {
@@ -26,7 +27,8 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
     }
   };
 
-  const createTask = async () => {
+  const createTask = async (e) => {
+    e.preventDefault();
     if (!title || !estimatedPomodoros) {
       alert('Please fill in all fields');
       return;
@@ -58,46 +60,53 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
   };
 
   return (
-    <View className="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md mb-8">
-      <Text className="text-2xl font-bold mb-4">Tasks</Text>
-      <View className="mb-4">
+    <View style={styles.card}>
+      <Text style={styles.title}>Tasks</Text>
+      <View style={{ marginBottom: 24 }}>
         <TextInput
+          style={styles.input}
           value={title}
           onChangeText={setTitle}
           placeholder="Task Title"
-          className="w-full p-2 mb-2 border rounded"
         />
         <TextInput
+          style={styles.input}
           value={estimatedPomodoros}
           onChangeText={setEstimatedPomodoros}
           placeholder="Estimated Pomodoros"
           keyboardType="numeric"
-          className="w-full p-2 mb-2 border rounded"
         />
-        <TouchableOpacity
-          onPress={createTask}
-          className="w-full bg-blue-500 p-2 rounded">
-          <Text className="text-white text-center">Add Task</Text>
+        <TouchableOpacity style={styles.button} onPress={createTask}>
+          <Text style={styles.buttonText}>Add Task</Text>
         </TouchableOpacity>
       </View>
-      <ScrollView className="space-y-2">
+      
+      <ScrollView style={{ maxHeight: 400 }}>
         {tasks.map((task) => (
-          <View key={task.id} className="p-4 bg-gray-50 rounded mb-2">
-            <View className="flex flex-row justify-between items-center">
-              <View className="flex-1">
-                <Text className={`font-bold ${task.is_active ? '' : 'line-through'}`}>
-                  {task.title}
-                </Text>
-                <Text className="text-sm text-gray-600">
-                  {task.completed_pomodoros}/{task.estimated_pomodoros} Pomodoros
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setCurrentTask(task)}
-                className="bg-blue-500 px-4 py-1 rounded">
-                <Text className="text-white">Select</Text>
-              </TouchableOpacity>
+          <View
+            key={task.id}
+            style={[
+              styles.taskItem,
+              currentTask?.id === task.id && styles.taskItemActive
+            ]}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={[
+                styles.text,
+                task.is_active ? {} : { textDecorationLine: 'line-through' }
+              ]}>
+                {task.title}
+              </Text>
+              <Text style={styles.smallText}>
+                {task.completed_pomodoros}/{task.estimated_pomodoros} Pomodoros
+              </Text>
             </View>
+            <TouchableOpacity
+              style={[styles.button, { paddingHorizontal: 16, paddingVertical: 8 }]}
+              onPress={() => setCurrentTask(task)}
+            >
+              <Text style={styles.buttonText}>Select</Text>
+            </TouchableOpacity>
           </View>
         ))}
       </ScrollView>

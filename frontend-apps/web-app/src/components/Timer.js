@@ -1,6 +1,7 @@
 // src/components/Timer.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { styles, colors } from '../styles/styles';
 
 export default function Timer({ currentTask, currentPreset, setCurrentPreset, settings, ws }) {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
@@ -20,6 +21,27 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
       setTimeLeft(current.long_break * 60);
     }
   }, [settings, currentPreset, sessionType]);
+
+  useEffect(() => {
+    if (!settings) return;
+    updateTimerDurations();
+  }, [settings, updateTimerDurations]);
+
+  useEffect(() => {
+    let interval;
+    if (isRunning && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft(time => {
+          if (time <= 1) {
+            handleSessionComplete();
+            return 0;
+          }
+          return time - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isRunning]);
 
   const handleSessionComplete = useCallback(() => {
     setIsRunning(false);
@@ -51,27 +73,6 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
     }
   }, [ws, currentSessionNumber, currentTask, sessionType, settings, currentPreset]);
 
-  useEffect(() => {
-    if (!settings) return;
-    updateTimerDurations();
-  }, [settings, updateTimerDurations]);
-
-  useEffect(() => {
-    let interval;
-    if (isRunning && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft(time => {
-          if (time <= 1) {
-            handleSessionComplete();
-            return 0;
-          }
-          return time - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isRunning, handleSessionComplete]);
-
   const formatTime = () => {
     const minutes = Math.floor(timeLeft / 60);
     const seconds = timeLeft % 60;
@@ -79,33 +80,56 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
   };
 
   return (
-    <View className="card p-8 mb-8">
-      <View className="flex flex-row justify-center space-x-4 mb-4">
+    <View style={styles.card}>
+      <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16, marginBottom: 24 }}>
         <TouchableOpacity
+          style={[
+            styles.button,
+            {
+              backgroundColor: currentPreset === 'short' ? colors.primary : colors.background,
+              padding: 8,
+              paddingHorizontal: 16,
+            }
+          ]}
           onPress={() => setCurrentPreset('short')}
-          className={`btn ${currentPreset === 'short' ? 'btn-primary' : 'btn-secondary'}`}>
-          <Text className="text-white">Short Preset (25/5)</Text>
+        >
+          <Text style={[styles.buttonText, 
+            { color: currentPreset === 'short' ? 'white' : colors.text }]}>
+            Short Preset (25/5)
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
+          style={[
+            styles.button,
+            {
+              backgroundColor: currentPreset === 'long' ? colors.primary : colors.background,
+              padding: 8,
+              paddingHorizontal: 16,
+            }
+          ]}
           onPress={() => setCurrentPreset('long')}
-          className={`btn ${currentPreset === 'long' ? 'btn-primary' : 'btn-secondary'}`}>
-          <Text className="text-white">Long Preset (50/10)</Text>
+        >
+          <Text style={[styles.buttonText, 
+            { color: currentPreset === 'long' ? 'white' : colors.text }]}>
+            Long Preset (50/10)
+          </Text>
         </TouchableOpacity>
       </View>
-      
-      <View className={`text-center ${isRunning ? 'timer-active' : ''}`}>
-        <Text className="timer-display mb-4">{formatTime()}</Text>
-        <Text className="text-xl text-clickup-text-light mb-4">
-          {sessionType === 'work' && currentTask 
+
+      <View style={styles.timerContainer}>
+        <Text style={styles.timerDisplay}>{formatTime()}</Text>
+        <Text style={[styles.text, { marginTop: 8 }]}>
+          {sessionType === 'work' && currentTask
             ? `Work Session - ${currentTask.title}`
             : sessionType === 'short_break'
             ? 'Short Break'
             : 'Long Break'}
         </Text>
-        
-        <View className="flex flex-row justify-center space-x-4 mb-4">
+
+        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 24 }}>
           {!isRunning ? (
             <TouchableOpacity
+              style={[styles.button, { backgroundColor: colors.success }]}
               onPress={() => {
                 setIsRunning(true);
                 if (ws?.readyState === WebSocket.OPEN) {
@@ -119,29 +143,31 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
                   }));
                 }
               }}
-              className="btn btn-success">
-              <Text className="text-white">Start</Text>
+            >
+              <Text style={styles.buttonText}>Start</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
+              style={[styles.button, { backgroundColor: colors.warning }]}
               onPress={() => {
                 setIsRunning(false);
                 if (ws?.readyState === WebSocket.OPEN) {
                   ws.send(JSON.stringify({ type: 'pause_session' }));
                 }
               }}
-              className="btn btn-warning">
-              <Text className="text-white">Pause</Text>
+            >
+              <Text style={styles.buttonText}>Pause</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
+            style={[styles.button, { backgroundColor: colors.danger }]}
             onPress={() => {
               setIsRunning(false);
               setSessionType('work');
               updateTimerDurations();
             }}
-            className="btn btn-danger">
-            <Text className="text-white">Reset</Text>
+          >
+            <Text style={styles.buttonText}>Reset</Text>
           </TouchableOpacity>
         </View>
       </View>

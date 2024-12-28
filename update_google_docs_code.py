@@ -13,11 +13,40 @@ def get_service():
     )
     return build("docs", "v1", credentials=credentials)
 
+def clear_document(service, doc_id):
+    """Clear all content from the Google Doc."""
+    try:
+        # Get the current document
+        doc = service.documents().get(documentId=doc_id).execute()
+        
+        # Get the length of the content
+        content_length = doc.get('body').get('content', [])[-1].get('endIndex', 1)
+        
+        if content_length > 1:  # Only clear if there's content
+            requests = [{
+                'deleteContentRange': {
+                    'range': {
+                        'startIndex': 1,  # Start from 1 to preserve the required first paragraph
+                        'endIndex': content_length - 1
+                    }
+                }
+            }]
+            
+            service.documents().batchUpdate(
+                documentId=doc_id, body={"requests": requests}
+            ).execute()
+            print("Successfully cleared document")
+    except Exception as e:
+        print(f"Error clearing document: {str(e)}")
+
 def insert_code_blocks(doc_id, file_paths):
     service = get_service()
-    doc = service.documents().get(documentId=doc_id).execute()
     
-    # Fixed: Get the last content block's endIndex directly
+    # Clear the document first
+    clear_document(service, doc_id)
+    
+    # Get the fresh document state after clearing
+    doc = service.documents().get(documentId=doc_id).execute()
     end_index = doc.get('body').get('content', [])[-1].get('endIndex', 1)
     
     requests = []
@@ -90,6 +119,7 @@ if __name__ == "__main__":
         "backend/app/main.py",
         "backend/app/models.py",
         "frontend-apps/web-app/src/App.js",
+        "frontend-apps/web-app/src/index.js",
         "frontend-apps/web-app/src/hooks/useWebSocket.js",
         "frontend-apps/web-app/src/config/api.js",
         "frontend-apps/web-app/src/components/LoginForm.js",

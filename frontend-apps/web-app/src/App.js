@@ -1,10 +1,10 @@
 // src/App.js
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import LoginForm from './components/LoginForm';
 import MainApp from './components/MainApp';
 import { apiConfig } from './config/api';
-import './styles/theme.css';
+import { styles } from './styles/styles';
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -24,7 +24,7 @@ export default function App() {
       localStorage.removeItem('token');
       setToken(null);
     }
-  }, [token, setToken]);
+  }, [token]);
 
   useEffect(() => {
     if (token) {
@@ -33,7 +33,7 @@ export default function App() {
   }, [token, verifyToken]);
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.container}>
       {token ? (
         <MainApp token={token} setToken={setToken} />
       ) : (
@@ -42,10 +42,3 @@ export default function App() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'var(--clickup-background)',
-  }
-});

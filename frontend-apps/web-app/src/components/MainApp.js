@@ -1,6 +1,4 @@
-// src/components/MainApp.js
 import React, { useState } from 'react';
-import { View } from 'react-native';
 import Timer from './Timer';
 import TaskList from './TaskList';
 import Settings from './Settings';
@@ -13,24 +11,26 @@ export default function MainApp({ token, setToken }) {
   const ws = useWebSocket(token);
 
   return (
-    <View style={{ flex: 1 }}>
-      <Timer 
-        currentTask={currentTask}
-        currentPreset={currentPreset}
-        setCurrentPreset={setCurrentPreset}
-        settings={settings}
-        ws={ws}
-      />
-      <TaskList 
-        token={token}
-        currentTask={currentTask}
-        setCurrentTask={setCurrentTask}
-      />
-      <Settings 
-        token={token}
-        settings={settings}
-        setSettings={setSettings}
-      />
-    </View>
+    <div className="min-h-screen bg-[#f7f6fb] p-4 md:p-8">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <Timer 
+          currentTask={currentTask}
+          currentPreset={currentPreset}
+          setCurrentPreset={setCurrentPreset}
+          settings={settings}
+          ws={ws}
+        />
+        <TaskList 
+          token={token}
+          currentTask={currentTask}
+          setCurrentTask={setCurrentTask}
+        />
+        <Settings 
+          token={token}
+          settings={settings}
+          setSettings={setSettings}
+        />
+      </div>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
-// src/components/Settings.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
+import { styles } from '../styles/styles';
 import { apiConfig } from '../config/api';
 
 export default function Settings({ token, settings, setSettings }) {
@@ -11,14 +11,7 @@ export default function Settings({ token, settings, setSettings }) {
   const [longBreak, setLongBreak] = useState('10');
   const [longLongBreak, setLongLongBreak] = useState('30');
 
-  useEffect(() => {
-    const init = async () => {
-      await loadSettings();
-    };
-    init();
-  }, [loadSettings]);
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       const response = await fetch(`${apiConfig.baseUrl}/users/settings`, {
         headers: {
@@ -29,7 +22,6 @@ export default function Settings({ token, settings, setSettings }) {
       const data = await response.json();
       setSettings(data);
       
-      // Update form fields
       if (data.short) {
         setShortWork(data.short.work_duration.toString());
         setShortBreak(data.short.short_break.toString());
@@ -43,9 +35,14 @@ export default function Settings({ token, settings, setSettings }) {
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
-  };
+  }, [token, setSettings]);
 
-  const saveSettings = async () => {
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  const saveSettings = async (e) => {
+    e.preventDefault();
     const newSettings = {
       short: {
         work_duration: parseInt(shortWork),
@@ -80,62 +77,85 @@ export default function Settings({ token, settings, setSettings }) {
   };
 
   return (
-    <View className="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md">
-      <Text className="text-2xl font-bold mb-4">Settings</Text>
-      <View className="grid grid-cols-2 gap-4">
-        <View>
-          <Text className="font-bold mb-2">Short</Text>
-          <TextInput
-            value={shortWork}
-            onChangeText={setShortWork}
-            placeholder="Work (min)"
-            keyboardType="numeric"
-            className="w-full p-2 mb-2 border rounded"
-          />
-          <TextInput
-            value={shortBreak}
-            onChangeText={setShortBreak}
-            placeholder="Break (min)"
-            keyboardType="numeric"
-            className="w-full p-2 mb-2 border rounded"
-          />
-          <TextInput
-            value={shortLongBreak}
-            onChangeText={setShortLongBreak}
-            placeholder="Long Break (min)"
-            keyboardType="numeric"
-            className="w-full p-2 mb-2 border rounded"
-          />
+    <View style={styles.card}>
+      <Text style={styles.title}>Settings</Text>
+      <View style={styles.settingsGrid}>
+        <View style={styles.settingsSection}>
+          <Text style={[styles.text, { fontWeight: 'bold', marginBottom: 16 }]}>
+            Short Preset
+          </Text>
+          <View style={{ gap: 12 }}>
+            <View>
+              <Text style={styles.smallText}>Work Duration (minutes)</Text>
+              <TextInput
+                style={styles.input}
+                value={shortWork}
+                onChangeText={setShortWork}
+                keyboardType="numeric"
+              />
+            </View>
+            <View>
+              <Text style={styles.smallText}>Short Break (minutes)</Text>
+              <TextInput
+                style={styles.input}
+                value={shortBreak}
+                onChangeText={setShortBreak}
+                keyboardType="numeric"
+              />
+            </View>
+            <View>
+              <Text style={styles.smallText}>Long Break (minutes)</Text>
+              <TextInput
+                style={styles.input}
+                value={shortLongBreak}
+                onChangeText={setShortLongBreak}
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
         </View>
-        <View>
-          <Text className="font-bold mb-2">Long</Text>
-          <TextInput
-            value={longWork}
-            onChangeText={setLongWork}
-            placeholder="Work (min)"
-            keyboardType="numeric"
-            className="w-full p-2 mb-2 border rounded"
-          />
-          <TextInput
-            value={longBreak}
-            onChangeText={setLongBreak}
-            placeholder="Break (min)"
-            keyboardType="numeric"
-            className="w-full p-2 mb-2 border rounded"
-          />
-          <TextInput
-            value={longLongBreak}
-            onChangeText={setLongLongBreak}
-            placeholder="Long Break (min)"
-            keyboardType="numeric"
-            className="w-full p-2 mb-2 border rounded"
-          />
+
+        <View style={styles.settingsSection}>
+          <Text style={[styles.text, { fontWeight: 'bold', marginBottom: 16 }]}>
+            Long Preset
+          </Text>
+          <View style={{ gap: 12 }}>
+            <View>
+              <Text style={styles.smallText}>Work Duration (minutes)</Text>
+              <TextInput
+                style={styles.input}
+                value={longWork}
+                onChangeText={setLongWork}
+                keyboardType="numeric"
+              />
+            </View>
+            <View>
+              <Text style={styles.smallText}>Short Break (minutes)</Text>
+              <TextInput
+                style={styles.input}
+                value={longBreak}
+                onChangeText={setLongBreak}
+                keyboardType="numeric"
+              />
+            </View>
+            <View>
+              <Text style={styles.smallText}>Long Break (minutes)</Text>
+              <TextInput
+                style={styles.input}
+                value={longLongBreak}
+                onChangeText={setLongLongBreak}
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
         </View>
       </View>
+
       <TouchableOpacity
+        style={[styles.button, { marginTop: 24 }]}
         onPress={saveSettings}
-        className="w-full bg-blue-500 p-2 rounded mt-4">
-        <Text className="text-white text-center">Save Settings</Text>
+      >
+        <Text style={styles.buttonText}>Save Settings</Text>
       </TouchableOpacity>
     </View>
   );
