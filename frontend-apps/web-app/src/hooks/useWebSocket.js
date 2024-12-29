@@ -7,22 +7,20 @@ export default function useWebSocket(token) {
   const [isConnected, setIsConnected] = useState(false);
   const reconnectAttempt = useRef(0);
   const MAX_RECONNECT_ATTEMPTS = 5;
-  const RECONNECT_INTERVAL = 2000; // 2 seconds
+  const RECONNECT_INTERVAL = 2000;
   const wsRef = useRef(null);
 
   const connectWebSocket = useCallback(() => {
     if (!token) return;
 
     try {
-      const tokenData = JSON.parse(atob(token.split('.')[1]));
-      const userId = tokenData.sub;
-      
       // Close existing connection if any
       if (wsRef.current) {
         wsRef.current.close();
       }
 
-      const wsUrl = `${apiConfig.baseUrl.replace('http', 'ws')}/ws/${userId}?token=${token}`;
+      // Modified to match backend endpoint structure
+      const wsUrl = `${apiConfig.baseUrl.replace('http', 'ws')}/ws/?token=${token}`;
       const websocket = new WebSocket(wsUrl);
       
       websocket.onopen = () => {
@@ -31,13 +29,15 @@ export default function useWebSocket(token) {
         reconnectAttempt.current = 0;
         wsRef.current = websocket;
         setWs(websocket);
+
+        // Request initial timer state sync
+        websocket.send(JSON.stringify({ type: 'sync_request' }));
       };
       
       websocket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           console.log('WebSocket message received:', data);
-          // Handle different message types here if needed
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
         }
@@ -54,7 +54,6 @@ export default function useWebSocket(token) {
         wsRef.current = null;
         setWs(null);
         
-        // Attempt to reconnect if we haven't exceeded max attempts
         if (reconnectAttempt.current < MAX_RECONNECT_ATTEMPTS) {
           console.log(`Attempting to reconnect (${reconnectAttempt.current + 1}/${MAX_RECONNECT_ATTEMPTS})`);
           setTimeout(() => {
@@ -71,7 +70,6 @@ export default function useWebSocket(token) {
     }
   }, [token]);
 
-  // Connect when component mounts or token changes
   useEffect(() => {
     const websocket = connectWebSocket();
     
@@ -85,7 +83,6 @@ export default function useWebSocket(token) {
     };
   }, [connectWebSocket]);
 
-  // Expose connection status and websocket instance
   return {
     ws,
     isConnected,

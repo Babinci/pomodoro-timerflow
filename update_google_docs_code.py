@@ -122,6 +122,7 @@ if __name__ == "__main__":
         "backend/app/main.py",
         "backend/app/models.py",
         "backend/app/auth.py",
+        "backend/app/ws_manager.py",
         "frontend-apps/web-app/src/App.js",
         "frontend-apps/web-app/src/index.js",
         "frontend-apps/web-app/src/hooks/useWebSocket.js",
