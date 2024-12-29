@@ -1,5 +1,5 @@
 #main.py
-from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi import Query, FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -12,7 +12,8 @@ from .database import engine, get_db
 from .ws_manager import manager
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-
+from typing import Optional
+from jose import JWTError
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -160,102 +161,139 @@ def get_settings(current_user: models.User = Depends(auth.get_current_user)):
     return current_user.pomodoro_settings
 
 # WebSocket connection for real-time timer sync
-@app.websocket("/ws/{user_id}")
+@app.websocket("/ws/")
 async def websocket_endpoint(
     websocket: WebSocket,
-    user_id: int,
+    token: str = Query(None),
     db: Session = Depends(get_db)
 ):
-    await manager.connect(websocket, user_id)
+    if not token:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
     try:
+        try:
+            payload = auth.verify_token(token)
+            email = payload.get("sub")
+            if not email:
+                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+                return
+                
+            # Get user from database
+            user = db.query(models.User).filter(models.User.email == email).first()
+            user_id = user.id
+            if not user:
+                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+                return
+                
+        except JWTError:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
         while True:
-            data = await websocket.receive_json()
-            
-            # Handle different message types
-            if data["type"] == "start_session":
-                task_id = data["data"]["task_id"]
-                session_type = data["data"]["session_type"]
-                current_session = data["data"]["current_session_number"]
+            try:
+                data = await websocket.receive_json()
                 
-                # Create new session in DB
-                db_session = models.PomodoroSession(
-                    user_id=user_id,
-                    task_id=task_id,
-                    session_type=session_type,
-                    current_session_number=current_session
-                )
-                db.add(db_session)
-                db.commit()
-                
-                # Start session in WebSocket manager
-                manager.start_session(user_id, {
-                    "session_id": db_session.id,
-                    "task_id": task_id,
-                    "type": session_type,
-                    "current_session": current_session
-                })
-                
-                # Broadcast session start to all user's devices
-                await manager.broadcast_to_user(user_id, {
-                    "type": "session_started",
-                    "data": {
-                        "session_id": db_session.id,
-                        "start_time": db_session.start_time.isoformat(),
-                        "type": session_type
-                    }
-                })
-            
-            elif data["type"] == "end_session":
-                session_id = data["data"]["session_id"]
-                
-                # Update session in DB
-                db_session = db.query(models.PomodoroSession).filter(
-                    models.PomodoroSession.id == session_id
-                ).first()
-                
-                if db_session:
-                    db_session.end_time = datetime.utcnow()
-                    db_session.completed = True
+                # Handle different message types
+                if data["type"] == "start_session":
+                    task_id = data["data"]["task_id"]
+                    session_type = data["data"]["session_type"]
+                    current_session = data["data"]["current_session_number"]
                     
-                    # If it was a work session, increment completed_pomodoros
-                    if db_session.session_type == "work":
-                        task = db.query(models.Task).filter(
-                            models.Task.id == db_session.task_id
-                        ).first()
-                        if task:
-                            task.completed_pomodoros += 1
-                    
+                    # Create new session in DB
+                    db_session = models.PomodoroSession(
+                        user_id=user_id,
+                        task_id=task_id,
+                        session_type=session_type,
+                        current_session_number=current_session
+                    )
+                    db.add(db_session)
                     db.commit()
+                    
+                    start_time = datetime.utcnow()
+                    # Start session in WebSocket manager
+                    manager.start_session(user_id, {
+                        "session_id": db_session.id,
+                        "task_id": task_id,
+                        "type": session_type,
+                        "current_session": current_session,
+                        "start_time": start_time,
+                        "is_running": True,
+                        "remaining_time": db_session.duration,  # This should be set based on session type
+                        "paused_at": None
+                    })
+                    
+                    # Broadcast session start to all user's devices
+                    await manager.broadcast_to_user(user_id, {
+                        "type": "session_started",
+                        "data": {
+                            "session_id": db_session.id,
+                            "start_time": start_time.isoformat(),
+                            "type": session_type,
+                            "task_id": task_id,
+                            "current_session": current_session,
+                            "remaining_time": db_session.duration
+                        }
+                    })
                 
-                # End session in WebSocket manager
-                manager.end_session(user_id)
+                elif data["type"] == "end_session":
+                    session_id = data["data"]["session_id"]
+                    
+                    # Update session in DB
+                    db_session = db.query(models.PomodoroSession).filter(
+                        models.PomodoroSession.id == session_id
+                    ).first()
+                    
+                    if db_session:
+                        db_session.end_time = datetime.utcnow()
+                        db_session.completed = True
+                        
+                        # If it was a work session, increment completed_pomodoros
+                        if db_session.session_type == "work":
+                            task = db.query(models.Task).filter(
+                                models.Task.id == db_session.task_id
+                            ).first()
+                            if task:
+                                task.completed_pomodoros += 1
+                        
+                        db.commit()
+                    
+                    # End session in WebSocket manager
+                    manager.end_session(user_id)
+                    
+                    # Broadcast session end
+                    await manager.broadcast_to_user(user_id, {
+                        "type": "session_ended",
+                        "data": {
+                            "session_id": session_id,
+                            "end_time": datetime.utcnow().isoformat()
+                        }
+                    })
                 
-                # Broadcast session end
-                await manager.broadcast_to_user(user_id, {
-                    "type": "session_ended",
-                    "data": {
-                        "session_id": session_id,
-                        "end_time": datetime.utcnow().isoformat()
-                    }
-                })
-            
-            elif data["type"] == "pause_session":
-                # Broadcast pause to all user's devices
-                await manager.broadcast_to_user(user_id, {
-                    "type": "session_paused",
-                    "data": {
-                        "pause_time": datetime.utcnow().isoformat()
-                    }
-                })
-            
-            elif data["type"] == "resume_session":
-                # Broadcast resume to all user's devices
-                await manager.broadcast_to_user(user_id, {
-                    "type": "session_resumed",
-                    "data": {
-                        "resume_time": datetime.utcnow().isoformat()
-                    }
-                })
+                elif data["type"] == "pause_session":
+                    manager.pause_session(user_id)
+                    # Broadcast pause to all user's devices
+                    await manager.broadcast_to_user(user_id, {
+                        "type": "session_paused",
+                        "data": {
+                            "pause_time": datetime.utcnow().isoformat()
+                        }
+                    })
                 
-    except WebSocketDisconnect:
-        await manager.disconnect(websocket, user_id)
+                elif data["type"] == "resume_session":
+                    manager.resume_session(user_id)
+                    # Broadcast resume to all user's devices
+                    await manager.broadcast_to_user(user_id, {
+                        "type": "session_resumed",
+                        "data": {
+                            "resume_time": datetime.utcnow().isoformat()
+                        }
+                    })
+
+            except WebSocketDisconnect:
+                await manager.disconnect(websocket, user_id)
+                return
+                
+    except Exception as e:
+        print(f"WebSocket Error: {str(e)}")
+        if not websocket.client_state.DISCONNECTED:
+            await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
+        return

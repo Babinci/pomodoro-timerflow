@@ -4,9 +4,9 @@ import os
 from dotenv import load_dotenv
 
 SCOPES = ["https://www.googleapis.com/auth/documents"]
+load_dotenv("credentials/.env")
 
 def get_service():
-    load_dotenv("credentials/.env")
     credentials_path = os.getenv("GOOGLE_DOCS_CREDENTIALS_PATH")
     credentials = service_account.Credentials.from_service_account_file(
         credentials_path, scopes=SCOPES
@@ -114,10 +114,14 @@ def insert_code_blocks(doc_id, file_paths):
         print(f"Error updating document: {str(e)}")
 
 if __name__ == "__main__":
-    doc_id = "1-nhehVT8Y1kGM1k7bard33fMwNvOEytO3Tz8WiVvDCE"
+    doc_id = os.getenv("GOOGLE_DOC_ID")
+    if not doc_id:
+        raise ValueError("GOOGLE_DOC_ID not found in environment variables")
+    
     paths = [
         "backend/app/main.py",
         "backend/app/models.py",
+        "backend/app/auth.py",
         "frontend-apps/web-app/src/App.js",
         "frontend-apps/web-app/src/index.js",
         "frontend-apps/web-app/src/hooks/useWebSocket.js",
