@@ -1,4 +1,3 @@
-// src/components/Timer.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { styles, colors } from '../styles/styles';
@@ -7,7 +6,8 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [sessionType, setSessionType] = useState('work');
-  const [currentSessionNumber, setCurrentSessionNumber] = useState(1);
+  const [roundNumber, setRoundNumber] = useState(1);
+  const [presetType, setPresetType] = useState('short'); // 'short' or 'long'
 
   // Handle incoming WebSocket messages
   useEffect(() => {
@@ -17,33 +17,30 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
       const data = JSON.parse(event.data);
       console.log('Timer received message:', data);
 
-      // Handle timer_sync message from backend
       if (data.type === 'timer_sync') {
-        const { task_id, session_type, remaining_time, is_paused } = data.data;
+        const { task_id, session_type, remaining_time, is_paused, round_number } = data.data;
         
         setTimeLeft(remaining_time);
         setSessionType(session_type);
         setIsRunning(!is_paused);
+        if (round_number) setRoundNumber(round_number);
         
-        // Update current task if needed
         if (task_id !== currentTask?.id) {
-          // You might want to fetch task details here or handle this differently
           console.log('Task ID mismatch:', task_id, currentTask?.id);
         }
       }
 
-      // Handle timer_stopped message
       if (data.type === 'timer_stopped') {
         setIsRunning(false);
-        updateTimerDurations(); // Reset to default duration
+        updateTimerDurations();
       }
     };
   }, [ws, currentTask]);
 
   const updateTimerDurations = useCallback(() => {
     if (!settings) return;
-    const current = settings[currentPreset];
-      
+    const current = settings[presetType];
+        
     if (sessionType === 'work') {
       setTimeLeft(current.work_duration * 60);
     } else if (sessionType === 'short_break') {
@@ -51,7 +48,11 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
     } else if (sessionType === 'long_break') {
       setTimeLeft(current.long_break * 60);
     }
-  }, [settings, currentPreset, sessionType]);
+  }, [settings, presetType, sessionType]);
+
+  useEffect(() => {
+    updateTimerDurations();
+  }, [presetType, updateTimerDurations]);
 
   const startTimer = () => {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -64,12 +65,12 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
       return;
     }
 
-    // Modified to match backend message structure
     ws.send(JSON.stringify({
       type: 'start',
       task_id: currentTask.id,
       session_type: sessionType,
-      duration: timeLeft
+      duration: timeLeft,
+      preset_type: presetType
     }));
   };
 
@@ -91,6 +92,12 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
     }
   };
 
+  const skipToNextSession = () => {
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'skip_to_next' }));
+    }
+  };
+
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -102,24 +109,67 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
     if (!ws || !isConnected) return;
 
     const interval = setInterval(() => {
-      ws.send(JSON.stringify({ type: 'sync_request' }));
+      ws.send(JSON.stringify({ 
+        type: 'sync_request',
+        preset_type: presetType 
+      }));
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [ws, isConnected]);
+  }, [ws, isConnected, presetType]);
 
-  // Rest of the component remains the same...
   return (
     <View style={styles.card}>
-      {/* Connection status indicator */}
-      <View style={{ alignItems: 'center', marginBottom: 8 }}>
-        <Text style={{ color: isConnected ? colors.success : colors.danger }}>
-          {isConnected ? 'Connected' : 'Disconnected'}
-        </Text>
-      </View>
-
-      {/* Timer controls */}
       <View style={styles.timerContainer}>
+        {/* Add skip button container */}
+        <View style={{ 
+          position: 'absolute', 
+          right: -48, 
+          top: '50%', 
+          transform: [{ translateY: -20 }] 
+        }}>
+          <TouchableOpacity
+            style={[
+              styles.button,
+              { 
+                width: 40, 
+                height: 40, 
+                borderRadius: 20,
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: colors.primary 
+              }
+            ]}
+            onPress={skipToNextSession}
+          >
+            <Text style={[styles.buttonText, { fontSize: 20 }]}>→</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <Text style={styles.text}>Round {roundNumber}/4</Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              style={[
+                styles.button,
+                presetType === 'short' && { backgroundColor: colors.primary }
+              ]}
+              onPress={() => setPresetType('short')}
+            >
+              <Text style={styles.buttonText}>Short</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.button,
+                presetType === 'long' && { backgroundColor: colors.primary }
+              ]}
+              onPress={() => setPresetType('long')}
+            >
+              <Text style={styles.buttonText}>Long</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <Text style={styles.timerDisplay}>{formatTime(timeLeft)}</Text>
         <Text style={[styles.text, { marginTop: 8 }]}>
           {sessionType === 'work' && currentTask
@@ -138,12 +188,20 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
               <Text style={styles.buttonText}>Start</Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: colors.warning }]}
-              onPress={pauseTimer}
-            >
-              <Text style={styles.buttonText}>Pause</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity
+                style={[styles.button, { backgroundColor: colors.warning }]}
+                onPress={pauseTimer}
+              >
+                <Text style={styles.buttonText}>Pause</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, { backgroundColor: colors.success }]}
+                onPress={resumeTimer}
+              >
+                <Text style={styles.buttonText}>Resume</Text>
+              </TouchableOpacity>
+            </>
           )}
           <TouchableOpacity
             style={[styles.button, { backgroundColor: colors.danger }]}

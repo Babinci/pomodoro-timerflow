@@ -34,6 +34,7 @@ class TimerState:
         """Resume the timer"""
         self.last_update = datetime.now(timezone.utc)  # Reset the update time
         self.is_paused = False
+    
 
 
 class ConnectionManager:
@@ -66,6 +67,43 @@ class ConnectionManager:
     def stop_timer(self, user_id: str):
         if user_id in self.timer_states:
             del self.timer_states[user_id]
+    def skip_to_next(self, user_id: str):
+        """Skip to the next session (work/break)
+        to refine
+        """
+        if user_id not in self.timer_states:
+            return
+
+        state = self.timer_states[user_id]
+        current_session = state.session_type
+        
+        # Determine the next session type
+        if current_session == 'work':
+            # If we just finished work, determine break type
+            if state.round_number % 4 == 0:  # Every 4th session
+                next_session = 'long_break'
+            else:
+                next_session = 'short_break'
+        else:
+            # After any break, go back to work and increment round
+            next_session = 'work'
+            if current_session == 'long_break':
+                state.round_number = 1
+            else:
+                state.round_number += 1
+
+        # Update session type and reset timer
+        state.session_type = next_session
+        if next_session == 'work':
+            state.time_remaining = state.settings[state.preset_type]['work_duration'] * 60
+        elif next_session == 'short_break':
+            state.time_remaining = state.settings[state.preset_type]['short_break'] * 60
+        else:  # long_break
+            state.time_remaining = state.settings[state.preset_type]['long_break'] * 60
+        
+        # Update last_update time and resume the timer
+        state.last_update = datetime.now(timezone.utc)
+        state.is_paused = False
 
     async def sync_timer_state(self, user_id: str):
         """Send current timer state to all user's connections"""

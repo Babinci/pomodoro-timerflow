@@ -237,6 +237,10 @@ async def websocket_endpoint(
                 
                 elif data["type"] == "sync_request":
                     await manager.sync_timer_state(user_id)
+                elif data["type"] == "skip_to_next":
+                    if user_id in manager.timer_states:
+                        manager.skip_to_next(user_id)
+                        await manager.sync_timer_state(user_id)
 
             except WebSocketDisconnect:
                 await manager.disconnect(websocket, user_id)
