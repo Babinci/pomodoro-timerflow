@@ -121,32 +121,13 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
   return (
     <View style={styles.card}>
       <View style={styles.timerContainer}>
-        {/* Add skip button container */}
+        {/* Header */}
         <View style={{ 
-          position: 'absolute', 
-          right: -48, 
-          top: '50%', 
-          transform: [{ translateY: -20 }] 
+          flexDirection: 'row', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: 16 
         }}>
-          <TouchableOpacity
-            style={[
-              styles.button,
-              { 
-                width: 40, 
-                height: 40, 
-                borderRadius: 20,
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: colors.primary 
-              }
-            ]}
-            onPress={skipToNextSession}
-          >
-            <Text style={[styles.buttonText, { fontSize: 20 }]}>→</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <Text style={styles.text}>Round {roundNumber}/4</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity
@@ -170,45 +151,110 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
           </View>
         </View>
 
-        <Text style={styles.timerDisplay}>{formatTime(timeLeft)}</Text>
-        <Text style={[styles.text, { marginTop: 8 }]}>
-          {sessionType === 'work' && currentTask
-            ? `Work Session - ${currentTask.title}`
-            : sessionType === 'short_break'
-            ? 'Short Break'
-            : 'Long Break'}
-        </Text>
+        {/* Main container for timer and controls */}
+        <View style={{
+          width: '100%',
+          maxWidth: 400,
+          alignSelf: 'center'
+        }}>
+          {/* Timer display section */}
+          <View style={{ 
+            width: '100%',
+            marginBottom: 24,
+            position: 'relative'
+          }}>
+            {/* Timer numbers - centered */}
+            <Text style={[
+              styles.timerDisplay,
+              { 
+                fontSize: 48, 
+                fontWeight: 'bold', 
+                color: colors.text,
+                textAlign: 'center'
+              }
+            ]}>
+              {formatTime(timeLeft)}
+            </Text>
 
-        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 24 }}>
-          {!isRunning ? (
+            {/* Arrow button - positioned to align with Stop button */}
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: colors.success }]}
-              onPress={startTimer}
+              style={{
+                position: 'absolute',
+                right: 0,
+                top: '50%',
+                transform: [{ translateY: -20 }],
+                backgroundColor: colors.primary,
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                justifyContent: 'center',
+                alignItems: 'center',
+                opacity: isRunning ? 1 : 0.5
+              }}
+              onPress={() => {
+                if (isRunning) {
+                  stopTimer();
+                  skipToNextSession();
+                }
+              }}
             >
-              <Text style={styles.buttonText}>Start</Text>
+              <Text style={{ color: 'white', fontSize: 20 }}>→</Text>
             </TouchableOpacity>
-          ) : (
-            <>
-              <TouchableOpacity
-                style={[styles.button, { backgroundColor: colors.warning }]}
-                onPress={pauseTimer}
-              >
-                <Text style={styles.buttonText}>Pause</Text>
-              </TouchableOpacity>
+
+            {/* Session type text */}
+            <Text style={[
+              styles.text,
+              { 
+                textAlign: 'center', 
+                fontSize: 16, 
+                color: colors.text,
+                marginTop: 8
+              }
+            ]}>
+              {sessionType === 'work' && currentTask
+                ? `Work Session - ${currentTask.title}`
+                : sessionType === 'short_break'
+                ? 'Short Break'
+                : 'Long Break'}
+            </Text>
+          </View>
+
+          {/* Control buttons - same width container as timer */}
+          <View style={{ 
+            flexDirection: 'row', 
+            justifyContent: 'center', 
+            gap: 16
+          }}>
+            {!isRunning ? (
               <TouchableOpacity
                 style={[styles.button, { backgroundColor: colors.success }]}
-                onPress={resumeTimer}
+                onPress={startTimer}
               >
-                <Text style={styles.buttonText}>Resume</Text>
+                <Text style={styles.buttonText}>Start</Text>
               </TouchableOpacity>
-            </>
-          )}
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: colors.danger }]}
-            onPress={stopTimer}
-          >
-            <Text style={styles.buttonText}>Stop</Text>
-          </TouchableOpacity>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={[styles.button, { backgroundColor: colors.warning }]}
+                  onPress={pauseTimer}
+                >
+                  <Text style={styles.buttonText}>Pause</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, { backgroundColor: colors.success }]}
+                  onPress={resumeTimer}
+                >
+                  <Text style={styles.buttonText}>Resume</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: colors.danger }]}
+              onPress={stopTimer}
+            >
+              <Text style={styles.buttonText}>Stop</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </View>
