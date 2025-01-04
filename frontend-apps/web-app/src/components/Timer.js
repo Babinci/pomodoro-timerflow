@@ -7,7 +7,8 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
   const [isRunning, setIsRunning] = useState(false);
   const [sessionType, setSessionType] = useState('work');
   const [roundNumber, setRoundNumber] = useState(1);
-  const [presetType, setPresetType] = useState('short'); // 'short' or 'long'
+  const [presetType, setPresetType] = useState('short');
+  const [activeTask, setActiveTask] = useState(currentTask); // Track active task from WebSocket
 
   // Handle incoming WebSocket messages
   useEffect(() => {
@@ -18,15 +19,23 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
       console.log('Timer received message:', data);
 
       if (data.type === 'timer_sync') {
-        const { task_id, session_type, remaining_time, is_paused, round_number } = data.data;
-        
+        const { 
+          task_id, 
+          session_type, 
+          remaining_time, 
+          is_paused, 
+          round_number,
+          active_task // Added to receive task details
+        } = data.data;
+          
         setTimeLeft(remaining_time);
         setSessionType(session_type);
         setIsRunning(!is_paused);
         if (round_number) setRoundNumber(round_number);
         
-        if (task_id !== currentTask?.id) {
-          console.log('Task ID mismatch:', task_id, currentTask?.id);
+        // Update active task if provided
+        if (active_task) {
+          setActiveTask(active_task);
         }
       }
 
@@ -35,12 +44,12 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
         updateTimerDurations();
       }
     };
-  }, [ws, currentTask]);
+  }, [ws]);
 
   const updateTimerDurations = useCallback(() => {
     if (!settings) return;
     const current = settings[presetType];
-        
+          
     if (sessionType === 'work') {
       setTimeLeft(current.work_duration * 60);
     } else if (sessionType === 'short_break') {
@@ -98,6 +107,15 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
     }
   };
 
+  const handleSkip = () => {
+    if (!isRunning) return;
+      
+    if (ws?.readyState === WebSocket.OPEN) {
+      skipToNextSession();
+      // Timer will be automatically paused by the server
+    }
+  };
+
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -117,6 +135,17 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
 
     return () => clearInterval(interval);
   }, [ws, isConnected, presetType]);
+
+  // Display logic for session info
+  const getSessionDisplay = () => {
+    if (sessionType === 'work' && activeTask) {
+      return `Work Session - ${activeTask.title}`;
+    } else if (sessionType === 'short_break') {
+      return 'Short Break';
+    } else {
+      return 'Long Break';
+    }
+  };
 
   return (
     <View style={styles.card}>
@@ -151,24 +180,22 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
           </View>
         </View>
 
-        {/* Main container for timer and controls */}
+        {/* Timer display and controls */}
         <View style={{
           width: '100%',
           maxWidth: 400,
           alignSelf: 'center'
         }}>
-          {/* Timer display section */}
-          <View style={{ 
+          <View style={{
             width: '100%',
             marginBottom: 24,
             position: 'relative'
           }}>
-            {/* Timer numbers - centered */}
             <Text style={[
               styles.timerDisplay,
-              { 
-                fontSize: 48, 
-                fontWeight: 'bold', 
+              {
+                fontSize: 48,
+                fontWeight: 'bold',
                 color: colors.text,
                 textAlign: 'center'
               }
@@ -176,7 +203,6 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
               {formatTime(timeLeft)}
             </Text>
 
-            {/* Arrow button - positioned to align with Stop button */}
             <TouchableOpacity
               style={{
                 position: 'absolute',
@@ -191,38 +217,28 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
                 alignItems: 'center',
                 opacity: isRunning ? 1 : 0.5
               }}
-              onPress={() => {
-                if (isRunning) {
-                  stopTimer();
-                  skipToNextSession();
-                }
-              }}
+              onPress={handleSkip}
             >
               <Text style={{ color: 'white', fontSize: 20 }}>→</Text>
             </TouchableOpacity>
 
-            {/* Session type text */}
             <Text style={[
               styles.text,
-              { 
-                textAlign: 'center', 
-                fontSize: 16, 
+              {
+                textAlign: 'center',
+                fontSize: 16,
                 color: colors.text,
                 marginTop: 8
               }
             ]}>
-              {sessionType === 'work' && currentTask
-                ? `Work Session - ${currentTask.title}`
-                : sessionType === 'short_break'
-                ? 'Short Break'
-                : 'Long Break'}
+              {getSessionDisplay()}
             </Text>
           </View>
 
-          {/* Control buttons - same width container as timer */}
-          <View style={{ 
-            flexDirection: 'row', 
-            justifyContent: 'center', 
+          {/* Control buttons */}
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'center',
             gap: 16
           }}>
             {!isRunning ? (

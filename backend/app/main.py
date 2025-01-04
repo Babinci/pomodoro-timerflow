@@ -198,45 +198,52 @@ async def websocket_endpoint(
         if not email:
             await websocket.close()
             return
-            
+              
         user = db.query(models.User).filter(models.User.email == email).first()
         if not user:
             await websocket.close()
             return
-        
+          
         user_id = str(user.id)
-        await manager.connect(websocket, user_id)
         
+        # Set the database session for the manager
+        manager.db = db
+        
+        await manager.connect(websocket, user_id)
+          
         while True:
             try:
                 data = await websocket.receive_json()
-                
+                  
                 if data["type"] == "start":
                     # Start new timer session
                     manager.start_timer(
                         user_id=user_id,
                         task_id=data["task_id"],
                         session_type=data["session_type"],
-                        duration=data["duration"]
+                        duration=data["duration"],
+                        preset_type=data.get("preset_type", "short"),
+                        user_settings=user.pomodoro_settings  # Pass user's settings
                     )
                     await manager.sync_timer_state(user_id)
-                
+                  
                 elif data["type"] == "stop":
                     manager.stop_timer(user_id)
                     await manager.broadcast_to_user(user_id, {"type": "timer_stopped"})
-                
+                  
                 elif data["type"] == "pause":
                     if user_id in manager.timer_states:
                         manager.timer_states[user_id].pause()
                         await manager.sync_timer_state(user_id)
-                
+                  
                 elif data["type"] == "resume":
                     if user_id in manager.timer_states:
                         manager.timer_states[user_id].resume()
                         await manager.sync_timer_state(user_id)
-                
+                  
                 elif data["type"] == "sync_request":
                     await manager.sync_timer_state(user_id)
+                    
                 elif data["type"] == "skip_to_next":
                     if user_id in manager.timer_states:
                         manager.skip_to_next(user_id)
@@ -245,8 +252,10 @@ async def websocket_endpoint(
             except WebSocketDisconnect:
                 await manager.disconnect(websocket, user_id)
                 return
-                
+                  
     except Exception as e:
         print(f"WebSocket Error: {str(e)}")
         if not websocket.client_state.DISCONNECTED:
             await websocket.close()
+    finally:
+        manager.db = None  # Clear the database session
