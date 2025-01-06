@@ -8,7 +8,8 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
   const [sessionType, setSessionType] = useState('work');
   const [roundNumber, setRoundNumber] = useState(1);
   const [presetType, setPresetType] = useState('short');
-  const [activeTask, setActiveTask] = useState(currentTask); // Track active task from WebSocket
+  const [activeTask, setActiveTask] = useState(null);
+  const [showStartBreak, setShowStartBreak] = useState(false);
 
   // Handle incoming WebSocket messages
   useEffect(() => {
@@ -19,28 +20,33 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
       console.log('Timer received message:', data);
 
       if (data.type === 'timer_sync') {
-        const { 
-          task_id, 
-          session_type, 
-          remaining_time, 
-          is_paused, 
+        const {
+          task_id,
+          session_type,
+          remaining_time,
+          is_paused,
           round_number,
-          active_task // Added to receive task details
+          active_task
         } = data.data;
-          
+            
         setTimeLeft(remaining_time);
         setSessionType(session_type);
         setIsRunning(!is_paused);
         if (round_number) setRoundNumber(round_number);
-        
+          
         // Update active task if provided
         if (active_task) {
           setActiveTask(active_task);
+          // Show start break button when work session ends
+          if (remaining_time === 0 && session_type.includes('break')) {
+            setShowStartBreak(true);
+          }
         }
       }
 
       if (data.type === 'timer_stopped') {
         setIsRunning(false);
+        setShowStartBreak(false);
         updateTimerDurations();
       }
     };
@@ -63,20 +69,35 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
     updateTimerDurations();
   }, [presetType, updateTimerDurations]);
 
+  // Regular interval to request sync from server
+  useEffect(() => {
+    if (!ws || !isConnected) return;
+
+    const interval = setInterval(() => {
+      ws.send(JSON.stringify({
+        type: 'sync_request',
+        preset_type: presetType
+      }));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [ws, isConnected, presetType]);
+
   const startTimer = () => {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       alert('Not connected to server. Please try again.');
       return;
     }
 
-    if (!currentTask) {
+    if (!currentTask && sessionType === 'work') {
       alert('Please select a task first');
       return;
     }
 
+    setShowStartBreak(false);
     ws.send(JSON.stringify({
       type: 'start',
-      task_id: currentTask.id,
+      task_id: currentTask?.id || activeTask?.id,
       session_type: sessionType,
       duration: timeLeft,
       preset_type: presetType
@@ -122,24 +143,11 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  // Regular interval to request sync from server
-  useEffect(() => {
-    if (!ws || !isConnected) return;
-
-    const interval = setInterval(() => {
-      ws.send(JSON.stringify({ 
-        type: 'sync_request',
-        preset_type: presetType 
-      }));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [ws, isConnected, presetType]);
-
-  // Display logic for session info
+  // Display logic for session info and progress
   const getSessionDisplay = () => {
-    if (sessionType === 'work' && activeTask) {
-      return `Work Session - ${activeTask.title}`;
+    const task = activeTask || currentTask;
+    if (sessionType === 'work' && task) {
+      return `Work Session - ${task.title} (${task.completed_pomodoros}/${task.estimated_pomodoros})`;
     } else if (sessionType === 'short_break') {
       return 'Short Break';
     } else {
@@ -151,11 +159,11 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
     <View style={styles.card}>
       <View style={styles.timerContainer}>
         {/* Header */}
-        <View style={{ 
-          flexDirection: 'row', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: 16 
+        <View style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 16
         }}>
           <Text style={styles.text}>Round {roundNumber}/4</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -246,7 +254,9 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
                 style={[styles.button, { backgroundColor: colors.success }]}
                 onPress={startTimer}
               >
-                <Text style={styles.buttonText}>Start</Text>
+                <Text style={styles.buttonText}>
+                  {showStartBreak ? 'Start Break' : 'Start'}
+                </Text>
               </TouchableOpacity>
             ) : (
               <>

@@ -17,12 +17,20 @@ class TimerState:
         self.preset_type = preset_type  # Current preset type (short/long)
         self.settings = user_settings  # Use user's actual settings
         self.active_task = None  # Store the active task details
+        self.session_completed = False  # New flag to track session completion
 
     def update_remaining_time(self):
         """Update remaining time if timer is running"""
         if not self.is_paused:
             elapsed = (datetime.now(timezone.utc) - self.last_update).total_seconds()
-            self.time_remaining = max(0, self.time_remaining - elapsed)
+            new_time = max(0, self.time_remaining - elapsed)
+            
+            # Check if timer just reached 0
+            if new_time == 0 and self.time_remaining > 0:
+                self.session_completed = True
+            
+            self.time_remaining = new_time
+            
         self.last_update = datetime.now(timezone.utc)
 
     def get_remaining_time(self) -> int:
@@ -92,33 +100,34 @@ class ConnectionManager:
             del self.timer_states[user_id]
 
     def skip_to_next(self, user_id: str):
-        """Skip to the next session by completing current session and starting next one"""
+        """Skip to the next session"""
         if user_id not in self.timer_states:
             return
-              
+            
         state = self.timer_states[user_id]
         current_session = state.session_type
-          
-        # Complete the current session by setting remaining time to 0
-        state.time_remaining = 0
-        state.update_remaining_time()
-          
-        # Determine the next session type based on current session and round number
+
+        # If it was a work session, update the task completion
+        if current_session == 'work' and self.db:
+            task = self.db.query(models.Task).filter(models.Task.id == state.task_id).first()
+            if task:
+                task.completed_pomodoros += 1
+                self.db.commit()
+            
+        # Determine the next session type
         if current_session == 'work':
-            # After work session, determine break type
-            if state.round_number % 4 == 0:  # Every 4th session
+            if state.round_number % state.settings[state.preset_type]['sessions_before_long_break'] == 0:
                 next_session = 'long_break'
             else:
                 next_session = 'short_break'
         else:
-            # After any break, go back to work
             next_session = 'work'
             if current_session == 'long_break':
                 state.round_number = 1
             else:
                 state.round_number += 1
-          
-        # Set up the next session with proper duration
+            
+        # Set up the next session
         state.session_type = next_session
         if next_session == 'work':
             state.time_remaining = state.settings[state.preset_type]['work_duration'] * 60
@@ -126,10 +135,29 @@ class ConnectionManager:
             state.time_remaining = state.settings[state.preset_type]['short_break'] * 60
         else:  # long_break
             state.time_remaining = state.settings[state.preset_type]['long_break'] * 60
-          
+            
         # Update timestamp and pause the timer
         state.last_update = datetime.now(timezone.utc)
-        state.is_paused = True  # Pause after skipping to next session
+        state.is_paused = True
+
+    async def handle_session_completion(self, user_id: str):
+        """Handle the completion of a timer session"""
+        if user_id not in self.timer_states:
+            return
+
+        state = self.timer_states[user_id]
+        current_session = state.session_type
+
+        # Update task completion if it was a work session
+        if current_session == 'work' and self.db:
+            task = self.db.query(models.Task).filter(models.Task.id == state.task_id).first()
+            if task:
+                task.completed_pomodoros += 1
+                self.db.commit()
+
+        # Automatically transition to the next session
+        self.skip_to_next(user_id)
+        await self.sync_timer_state(user_id)
 
     async def sync_timer_state(self, user_id: str):
         """Send current timer state to all user's connections"""
@@ -137,15 +165,35 @@ class ConnectionManager:
             return
 
         state = self.timer_states[user_id]
+        remaining_time = state.get_remaining_time()
+        
+        # Check if session just completed
+        if state.session_completed:
+            state.session_completed = False  # Reset the flag
+            await self.handle_session_completion(user_id)
+            return
+
+        # Get updated task information
+        task_info = None
+        if self.db and state.task_id:
+            task = self.db.query(models.Task).filter(models.Task.id == state.task_id).first()
+            if task:
+                task_info = {
+                    "id": task.id,
+                    "title": task.title,
+                    "completed_pomodoros": task.completed_pomodoros,
+                    "estimated_pomodoros": task.estimated_pomodoros
+                }
+
         message = {
             "type": "timer_sync",
             "data": {
                 "task_id": state.task_id,
                 "session_type": state.session_type,
-                "remaining_time": state.get_remaining_time(),
+                "remaining_time": remaining_time,
                 "is_paused": state.is_paused,
-                "round_number": state.round_number,  # Include round number
-                "active_task": state.active_task,    # Include active task details
+                "round_number": state.round_number,
+                "active_task": task_info
             },
         }
         await self.broadcast_to_user(user_id, message)
