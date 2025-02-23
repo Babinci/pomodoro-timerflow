@@ -7,25 +7,33 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
     status,
+    APIRouter
 )
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import datetime, timedelta
-import json
-
+from datetime import timedelta
 from . import models, schemas, auth
 from .database import engine, get_db
 from .ws_manager import manager
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from typing import Optional
-from jose import JWTError
+import os
+import logging
+
+logging.basicConfig(level=logging.INFO, filename="/app/logs/error.log")
+logger = logging.getLogger(__name__)
+
+# Directory for frontend static files
+STATIC_DIR = "/app/app/frontend-build"  # Absolute path in container
 
 models.Base.metadata.create_all(bind=engine)
 
+# Main FastAPI app (for serving frontend)
 app = FastAPI()
+
+# API router for backend routes
+api_router = APIRouter()
 
 # CORS setup
 app.add_middleware(
@@ -36,8 +44,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-@app.post("/token")
+@api_router.post("/token")
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
@@ -63,13 +70,13 @@ async def login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.get("/verify-token")
+@api_router.get("/verify-token")
 async def verify_token(current_user: models.User = Depends(auth.get_current_user)):
     """Verify if the provided token is valid"""
     return {"valid": True, "user_id": current_user.id}
 
 
-@app.post("/users/", response_model=schemas.User)
+@api_router.post("/users", response_model=schemas.User)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     # Check if email exists
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
@@ -95,7 +102,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 
 # Task routes
-@app.post("/tasks/", response_model=schemas.Task)
+@api_router.post("/tasks", response_model=schemas.Task)
 def create_task(
     task: schemas.TaskCreate,
     db: Session = Depends(get_db),
@@ -108,7 +115,7 @@ def create_task(
     return db_task
 
 
-@app.get("/tasks/", response_model=List[schemas.Task])
+@api_router.get("/tasks", response_model=List[schemas.Task])
 def get_tasks(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
@@ -116,7 +123,7 @@ def get_tasks(
     return db.query(models.Task).filter(models.Task.user_id == current_user.id).all()
 
 
-@app.put("/tasks/{task_id}")
+@api_router.put("/tasks/{task_id}")
 def update_task(
     task_id: int,
     task: schemas.TaskCreate,
@@ -139,7 +146,7 @@ def update_task(
     return db_task
 
 
-@app.delete("/tasks/{task_id}")
+@api_router.delete("/tasks/{task_id}")
 def delete_task(
     task_id: int,
     db: Session = Depends(get_db),
@@ -165,7 +172,7 @@ def delete_task(
 
 
 # Pomodoro settings routes
-@app.put("/users/settings")
+@api_router.put("/users/settings")
 def update_settings(
     settings: schemas.UserSettings,
     db: Session = Depends(get_db),
@@ -176,17 +183,18 @@ def update_settings(
     return {"status": "success"}
 
 
-@app.get("/users/settings", response_model=schemas.UserSettings)
+@api_router.get("/users/settings", response_model=schemas.UserSettings)
 def get_settings(current_user: models.User = Depends(auth.get_current_user)):
     return current_user.pomodoro_settings
 
 
-@app.websocket("/ws/")
+@api_router.websocket("/ws/")
 async def websocket_endpoint(
     websocket: WebSocket,
     token: str = Query(None),
     db: Session = Depends(get_db)
 ):
+    logger.info(f"WebSocket connection attempt with token: {token}")
     if not token:
         await websocket.close()
         return
@@ -194,11 +202,12 @@ async def websocket_endpoint(
     try:
         # Verify token and get user
         payload = auth.verify_token(token)
+        logger.info(f"Token payload: {payload}")
         email = payload.get("sub")
         if not email:
             await websocket.close()
             return
-              
+          
         user = db.query(models.User).filter(models.User.email == email).first()
         if not user:
             await websocket.close()
@@ -252,10 +261,25 @@ async def websocket_endpoint(
             except WebSocketDisconnect:
                 await manager.disconnect(websocket, user_id)
                 return
-                  
+
     except Exception as e:
-        print(f"WebSocket Error: {str(e)}")
+        logger.exception(f"WebSocket Error: {str(e)}")
         if not websocket.client_state.DISCONNECTED:
             await websocket.close()
     finally:
         manager.db = None  # Clear the database session
+
+
+# Mount the api_router at /api
+app.include_router(api_router, prefix="/api")
+
+@app.get("/{path:path}")
+async def serve_frontend(path: str):
+    file_path = os.path.join(STATIC_DIR, path)
+    logging.info(f"Requested path: {path}, Checking: {file_path}")
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        logging.info(f"Serving file: {file_path}")
+        return FileResponse(file_path)
+    index_path = os.path.join(STATIC_DIR, "index.html")
+    logging.info(f"Falling back to: {index_path}")
+    return FileResponse(index_path)

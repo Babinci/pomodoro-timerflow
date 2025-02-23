@@ -1,4 +1,5 @@
 credentials
+memory-bank
 # Python
 __pycache__/
 *.py[cod]
@@ -33,6 +34,7 @@ pomodoro-venv
 backend/pomodoro-venv
 backend/static/app_commented.js
 backend/static/brython_example.py
+backend/credentials
 fast_notes.txt
 # Database
 *.sqlite3
@@ -73,3 +75,10 @@ yarn-error.log*
 .externalNativeBuild
 .cxx
 local.properties
+
+
+##additional
+.clinerules
+prompts
+update_google_docs_code.py
+logs

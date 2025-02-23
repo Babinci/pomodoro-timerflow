@@ -49,6 +49,16 @@ Pomodoro TimerFlow is a comprehensive productivity tool that lets you:
 - Real-time WebSocket integration
 - Responsive design
 
+## 🌐 Live Demo
+
+You can access the live demo of the Pomodoro TimerFlow web application at:
+
+[https://pomodoro.cypher-arena.com/](https://pomodoro.cypher-arena.com/)
+
+To create a user account, please refer to the documentation available at:
+
+[https://pomodoro.cypher-arena.com/docs](https://pomodoro.cypher-arena.com/docs)
+
 ## 🏗️ Current State
 
 - ✅ Functional backend server with API documentation
@@ -58,40 +68,22 @@ Pomodoro TimerFlow is a comprehensive productivity tool that lets you:
   - Pomodoro timer
   - Real-time synchronization
 - 🚧 Wear OS application (in development)
+- ✅ Docker setup successful
+- 📝 Current plans:
+  - Add user CRUD to backend and frontend
+  - Create app for smartwatch wear os
+  - Websockets server and client usage optimization
 
-## 📋 Roadmap
-
-1. **Phase 1 (Current)**
-   - Deploy web app and backend to production hosting
-   - Implement proper registration and login flow
-
-2. **Phase 2**
-   - Refine Wear OS application
-   - Add offline support
-   - Enhance synchronization
-
-3. **Phase 3**
-   - Mobile app development
-   - Cross-platform testing
-   - Performance optimization
 
 ## 🛠️ Getting Started
 
-1. **Backend Setup**
-   ```bash
-   cd backend
-   pip install -r requirements.txt
-   uvicorn app.main:app --reload
-   ```
 
-2. **Web App Setup**
-   ```bash
-   cd frontend-apps/web-app
-   npm install
-   npm start
-   ```
 
-The backend server documentation will be available at `http://localhost:8000/docs`
+The backend server documentation will be available at `http://localhost:8003/docs`
+
+you can build from dockerfile by:
+
+ `docker build -t pomodoro-app .`
 
 ## 📱 Usage
 

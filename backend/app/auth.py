@@ -10,7 +10,7 @@ from . import models, schemas
 from .database import get_db
 from dotenv import load_dotenv
 import os
-load_dotenv("../credentials/.env")
+load_dotenv("/app/.env")
 
 
 # CONFIG
