@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { styles, colors } from '../styles/styles';
 
-export default function Timer({ currentTask, currentPreset, setCurrentPreset, settings, ws: { ws, isConnected } }) {
+export default function Timer({ currentTask, currentPreset, setCurrentPreset, settings, ws: { ws, isConnected }, setTimerCountdown }) {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [sessionType, setSessionType] = useState('work');
@@ -29,7 +29,9 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
           active_task
         } = data.data;
             
+        const formattedTime = `${Math.floor(remaining_time / 60).toString().padStart(2, '0')}:${(remaining_time % 60).toString().padStart(2, '0')}`;
         setTimeLeft(remaining_time);
+        setTimerCountdown(formattedTime);
         setSessionType(session_type);
         setIsRunning(!is_paused);
         if (round_number) setRoundNumber(round_number);
@@ -51,6 +53,12 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
       }
     };
   }, [ws]);
+
+  useEffect(() => {
+    const formattedTime = formatTime(timeLeft);
+    setTimerCountdown(formattedTime);
+    console.log('Timer timeLeft:', timeLeft, 'formattedTime:', formattedTime);
+  }, [timeLeft, setTimerCountdown]);
 
   const updateTimerDurations = useCallback(() => {
     if (!settings) return;

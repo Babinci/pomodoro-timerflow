@@ -77,8 +77,9 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
     }
   };
 
-  const updateTaskDescription = async (taskId, updatedTask) => {
+  const updateTaskDescription = async (taskId, updatedTask, isSelected) => {
     try {
+      if (!isSelected) return;
       const response = await fetch(`${apiConfig.baseUrl}/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
@@ -146,7 +147,7 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
                 value={task.title}
                 onChangeText={(text) => {
                   const updatedTask = { ...task, title: text };
-                  updateTaskDescription(task.id, updatedTask);
+                  updateTaskDescription(task.id, updatedTask, currentTask?.id === task.id);
                 }}
               />
               <TextInput
