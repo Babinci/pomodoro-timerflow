@@ -59,6 +59,14 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
         setIsRunning(false);
         setShowStartBreak(false);
       }
+      if (data.type === 'rounds_reset') {
+        // Reset local round state
+        setRoundNumber(1);
+        setSessionType('work');
+        updateTimerDurations();
+        setIsRunning(false);
+        setShowStartBreak(false);
+      }
     };
   }, [ws]);
 
@@ -133,20 +141,20 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
   };
 
   const stopTimer = () => {
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'stop' }));
-    }
-  };
+      if (ws?.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'stop' }));
+      }
+    };
+  
+    const resetAllRounds = () => {
+      if (ws?.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'reset_rounds' }));
+      }
+    };
 
   const skipToNextSession = () => {
     if (ws?.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'skip_to_next' }));
-    }
-  };
-
-  const resetAllRounds = () => {
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'reset_rounds' }));
     }
   };
 
@@ -302,6 +310,14 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
               onPress={stopTimer}
             >
               <Text style={styles.buttonText}>Stop</Text>
+            </TouchableOpacity>
+            
+            {/* Add this new Reset All Rounds button */}
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: colors.warning }]}
+              onPress={resetAllRounds}
+            >
+              <Text style={styles.buttonText}>Reset All Rounds</Text>
             </TouchableOpacity>
           </View>
         </View>
