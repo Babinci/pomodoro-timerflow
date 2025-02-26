@@ -258,6 +258,12 @@ async def websocket_endpoint(
                         manager.skip_to_next(user_id)
                         await manager.sync_timer_state(user_id)
 
+                elif data["type"] == "reset_rounds":
+                    # Reset rounds for the user
+                    manager.reset_rounds(user_id)
+                    await manager.sync_timer_state(user_id)
+                    await manager.broadcast_to_user(user_id, {"type": "rounds_reset"})
+
             except WebSocketDisconnect:
                 await manager.disconnect(websocket, user_id)
                 return

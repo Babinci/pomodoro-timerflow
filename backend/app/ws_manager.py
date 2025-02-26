@@ -140,6 +140,44 @@ class ConnectionManager:
         state.last_update = datetime.now(timezone.utc)
         state.is_paused = True
 
+    def reset_rounds(self, user_id: str):
+        """Reset the round counter and timer for a user"""
+        if user_id not in self.timer_states:
+            # If there's no active timer state, create a default one
+            if self.db:
+                # Get user settings
+                from . import models
+                user = self.db.query(models.User).filter(models.User.id == user_id).first()
+                if user:
+                    user_settings = user.pomodoro_settings
+                    preset_type = 'short'  # Default preset
+                    
+                    # Create a new timer state with default values
+                    self.timer_states[user_id] = TimerState(
+                        task_id=None,
+                        session_type='work',
+                        time_remaining=user_settings[preset_type]['work_duration'] * 60,
+                        user_settings=user_settings,
+                        preset_type=preset_type
+                    )
+                    # Set round number to 1
+                    self.timer_states[user_id].round_number = 1
+                    # Pause the timer
+                    self.timer_states[user_id].is_paused = True
+                    return
+        else:
+            # Reset existing timer state
+            state = self.timer_states[user_id]
+            # Reset round number
+            state.round_number = 1
+            # Reset to work session
+            state.session_type = 'work'
+            # Reset timer duration based on preset
+            state.time_remaining = state.settings[state.preset_type]['work_duration'] * 60
+            # Update timestamp and pause the timer
+            state.last_update = datetime.now(timezone.utc)
+            state.is_paused = True
+
     async def handle_session_completion(self, user_id: str):
         """Handle the completion of a timer session"""
         if user_id not in self.timer_states:

@@ -51,6 +51,14 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
         setShowStartBreak(false);
         updateTimerDurations();
       }
+      if (data.type === 'rounds_reset') {
+        // Reset local round state
+        setRoundNumber(1);
+        setSessionType('work');
+        updateTimerDurations();
+        setIsRunning(false);
+        setShowStartBreak(false);
+      }
     };
   }, [ws]);
 
@@ -136,6 +144,12 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
     }
   };
 
+  const resetAllRounds = () => {
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'reset_rounds' }));
+    }
+  };
+
   const handleSkip = () => {
     if (!isRunning) return;
       
@@ -145,6 +159,7 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
     }
   };
 
+  // Handle rounds reset response from server
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
