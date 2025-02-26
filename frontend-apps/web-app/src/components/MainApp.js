@@ -13,7 +13,7 @@ export default function MainApp({ token, setToken }) {
 
   // Update document title with timer and task
   React.useEffect(() => {
-    const taskName = currentTask?.name || 'No task selected';
+    const taskName = currentTask?.title || 'No task selected';
     document.title = `${timerCountdown} | ${taskName}`;
     console.log('MainApp timerCountdown:', timerCountdown, 'taskName:', taskName);
   }, [currentTask, timerCountdown]); // Removed ws dependency
