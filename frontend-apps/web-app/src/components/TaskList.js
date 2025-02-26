@@ -7,6 +7,8 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState('');
   const [estimatedPomodoros, setEstimatedPomodoros] = useState('1');
+  const [editingTaskId, setEditingTaskId] = useState(null);
+  const [editDescription, setEditDescription] = useState('');
 
   useEffect(() => {
     loadTasks();
@@ -72,14 +74,23 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
       if (currentTask?.id === taskId) {
         setCurrentTask(null);
       }
+      // Clear editing state if we're deleting the task being edited
+      if (editingTaskId === taskId) {
+        setEditingTaskId(null);
+        setEditDescription('');
+      }
     } catch (error) {
       alert('Failed to delete task: ' + error.message);
     }
   };
 
-  const updateTaskDescription = async (taskId, updatedTask, isSelected) => {
+  const updateTask = async (taskId, updatedFields) => {
     try {
-      if (!isSelected) return;
+      const taskToUpdate = tasks.find(t => t.id === taskId);
+      if (!taskToUpdate) return;
+
+      const updatedTask = { ...taskToUpdate, ...updatedFields };
+      
       const response = await fetch(`${apiConfig.baseUrl}/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
@@ -96,9 +107,30 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
       if (!response.ok) throw new Error('Failed to update task');
       const updatedTaskData = await response.json();
       setTasks(tasks.map(t => t.id === taskId ? updatedTaskData : t));
+      
+      // Update current task if this is the selected one
+      if (currentTask?.id === taskId) {
+        setCurrentTask(updatedTaskData);
+      }
     } catch (error) {
       console.error('Failed to update task:', error);
+      alert('Failed to update task: ' + error.message);
     }
+  };
+
+  const startEditingDescription = (task) => {
+    setEditingTaskId(task.id);
+    setEditDescription(task.description || '');
+  };
+
+  const saveDescription = (taskId) => {
+    updateTask(taskId, { description: editDescription });
+    setEditingTaskId(null);
+  };
+
+  const cancelEditingDescription = () => {
+    setEditingTaskId(null);
+    setEditDescription('');
   };
 
   return (
@@ -145,21 +177,66 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
               <TextInput
                 style={[styles.input, { marginBottom: 4 }]}
                 value={task.title}
-                onChangeText={(text) => {
-                  const updatedTask = { ...task, title: text };
-                  updateTaskDescription(task.id, updatedTask, currentTask?.id === task.id);
-                }}
+                onChangeText={(text) => updateTask(task.id, { title: text })}
               />
-              <TextInput
-                style={[styles.input, { marginVertical: 8 }]}
-                placeholder="Description (optional)"
-                value={task.description || ''}
-                onChangeText={(text) => {
-                  const updatedTask = { ...task, description: text };
-                  updateTaskDescription(task.id, updatedTask);
-                }}
-                multiline
-              />
+              
+              {/* Description Field with Edit/Save Pattern */}
+              {editingTaskId === task.id ? (
+                <View style={{ marginVertical: 8 }}>
+                  <TextInput
+                    style={[
+                      styles.input, 
+                      { 
+                        minHeight: 80, 
+                        textAlignVertical: 'top',
+                        paddingTop: 8
+                      }
+                    ]}
+                    placeholder="Description (optional)"
+                    value={editDescription}
+                    onChangeText={setEditDescription}
+                    multiline={true}
+                    numberOfLines={4}
+                  />
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                    <TouchableOpacity
+                      style={[styles.button, { backgroundColor: colors.success }]}
+                      onPress={() => saveDescription(task.id)}
+                    >
+                      <Text style={styles.buttonText}>Save</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.button, { backgroundColor: colors.textLight }]}
+                      onPress={cancelEditingDescription}
+                    >
+                      <Text style={styles.buttonText}>Cancel</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <View style={{ marginVertical: 8 }}>
+                  <TouchableOpacity
+                    style={[
+                      styles.input,
+                      { 
+                        minHeight: 60, 
+                        paddingTop: 8,
+                        paddingBottom: 8
+                      }
+                    ]}
+                    onPress={() => startEditingDescription(task)}
+                  >
+                    {task.description ? (
+                      <Text style={{ color: colors.text }}>{task.description}</Text>
+                    ) : (
+                      <Text style={{ color: colors.textLight }}>
+                        Description (optional) - Click to edit
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+              
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Text style={styles.smallText}>
                   {task.completed_pomodoros}/
@@ -167,13 +244,9 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <TouchableOpacity
                     style={[styles.button, { paddingHorizontal: 8, paddingVertical: 4 }]}
-                    onPress={() => {
-                      const updatedTask = { 
-                        ...task, 
-                        estimated_pomodoros: Math.max(1, task.estimated_pomodoros - 1)
-                      };
-                      updateTaskDescription(task.id, updatedTask);
-                    }}
+                    onPress={() => updateTask(task.id, { 
+                      estimated_pomodoros: Math.max(1, task.estimated_pomodoros - 1)
+                    })}
                   >
                     <Text style={[styles.buttonText, { fontSize: 12 }]}>-</Text>
                   </TouchableOpacity>
@@ -182,13 +255,9 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
                   </Text>
                   <TouchableOpacity
                     style={[styles.button, { paddingHorizontal: 8, paddingVertical: 4 }]}
-                    onPress={() => {
-                      const updatedTask = { 
-                        ...task, 
-                        estimated_pomodoros: task.estimated_pomodoros + 1
-                      };
-                      updateTaskDescription(task.id, updatedTask);
-                    }}
+                    onPress={() => updateTask(task.id, { 
+                      estimated_pomodoros: task.estimated_pomodoros + 1
+                    })}
                   >
                     <Text style={[styles.buttonText, { fontSize: 12 }]}>+</Text>
                   </TouchableOpacity>
