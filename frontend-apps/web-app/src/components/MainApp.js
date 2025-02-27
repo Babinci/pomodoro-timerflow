@@ -16,7 +16,7 @@ export default function MainApp({ token, setToken }) {
     const taskName = currentTask?.title || 'No task selected';
     document.title = `${timerCountdown} | ${taskName}`;
     console.log('MainApp timerCountdown:', timerCountdown, 'taskName:', taskName);
-  }, [currentTask, timerCountdown]); // Removed ws dependency
+  }, [currentTask, timerCountdown]);
 
   return (
     <div className="min-h-screen bg-[#f7f6fb] p-4 md:p-8">
@@ -38,6 +38,7 @@ export default function MainApp({ token, setToken }) {
           token={token}
           settings={settings}
           setSettings={setSettings}
+          setToken={setToken}  /* Pass setToken function to Settings */
         />
       </div>
     </div>

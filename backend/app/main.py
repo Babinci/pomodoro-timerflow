@@ -100,6 +100,33 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db.refresh(db_user)
     return db_user
 
+@api_router.get("/users/me", response_model=schemas.User)
+def get_current_user_info(current_user: models.User = Depends(auth.get_current_user)):
+    """Get current user information"""
+    return current_user
+
+
+@api_router.delete("/users/me", status_code=204)
+def delete_current_user(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """Delete the current user's account"""
+    # First delete associated pomodoro sessions
+    db.query(models.PomodoroSession).filter(
+        models.PomodoroSession.user_id == current_user.id
+    ).delete()
+    
+    # Delete tasks
+    db.query(models.Task).filter(
+        models.Task.user_id == current_user.id
+    ).delete()
+    
+    # Finally delete the user
+    db.delete(current_user)
+    db.commit()
+    
+    return {"status": "success"}
 
 # Task routes
 @api_router.post("/tasks", response_model=schemas.Task)
