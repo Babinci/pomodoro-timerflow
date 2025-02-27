@@ -18,6 +18,11 @@ Pomodoro TimerFlow is a comprehensive productivity tool that lets you:
 
 ## 🚀 Features
 
+- **User Management**
+  - Easy registration with email and username
+  - Secure authentication
+  - Account management including account deletion
+
 - **Cross-Platform Support**
   - Web application
   - Mobile app (planned)
@@ -55,12 +60,16 @@ You can access the live demo of the Pomodoro TimerFlow web application at:
 
 [https://pomodoro.cypher-arena.com/](https://pomodoro.cypher-arena.com/)
 
-To create a user account, please refer to the documentation available at:
-
-[https://pomodoro.cypher-arena.com/docs](https://pomodoro.cypher-arena.com/docs)
+To use the app:
+- Register a new account with your email, username, and password
+- Login with your credentials
+- Create and manage tasks
+- Set your preferred Pomodoro intervals
+- Start tracking your work sessions
 
 ## 🏗️ Current State
 
+- ✅ User registration and account management
 - ✅ Functional backend server with API documentation
 - ✅ Working web application with:
   - User authentication
@@ -70,14 +79,12 @@ To create a user account, please refer to the documentation available at:
 - 🚧 Wear OS application (in development)
 - ✅ Docker setup successful
 - 📝 Current plans:
-  - Add user CRUD to backend and frontend
   - Create app for smartwatch wear os
   - Websockets server and client usage optimization
-
+  - Add bell notification at end of round
+  - Google authentication integration
 
 ## 🛠️ Getting Started
-
-
 
 The backend server documentation will be available at `http://localhost:8003/docs`
 
@@ -87,7 +94,7 @@ you can build from dockerfile by:
 
 ## 📱 Usage
 
-1. Register using the backend server documentation
+1. Register a new account
 2. Log in to the web application
 3. Create and manage your tasks
 4. Start tracking your Pomodoro sessions
