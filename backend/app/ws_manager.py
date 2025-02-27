@@ -106,6 +106,7 @@ class ConnectionManager:
             
         state = self.timer_states[user_id]
         current_session = state.session_type
+        current_preset = state.preset_type  # Store current preset type
 
         # If it was a work session, update the task completion
         if current_session == 'work' and self.db:
@@ -116,7 +117,7 @@ class ConnectionManager:
             
         # Determine the next session type
         if current_session == 'work':
-            if state.round_number % state.settings[state.preset_type]['sessions_before_long_break'] == 0:
+            if state.round_number % state.settings[current_preset]['sessions_before_long_break'] == 0:
                 next_session = 'long_break'
             else:
                 next_session = 'short_break'
@@ -130,11 +131,11 @@ class ConnectionManager:
         # Set up the next session
         state.session_type = next_session
         if next_session == 'work':
-            state.time_remaining = state.settings[state.preset_type]['work_duration'] * 60
+            state.time_remaining = state.settings[current_preset]['work_duration'] * 60
         elif next_session == 'short_break':
-            state.time_remaining = state.settings[state.preset_type]['short_break'] * 60
+            state.time_remaining = state.settings[current_preset]['short_break'] * 60
         else:  # long_break
-            state.time_remaining = state.settings[state.preset_type]['long_break'] * 60
+            state.time_remaining = state.settings[current_preset]['long_break'] * 60
             
         # Update timestamp and pause the timer
         state.last_update = datetime.now(timezone.utc)
@@ -182,20 +183,20 @@ class ConnectionManager:
         """Handle the completion of a timer session"""
         if user_id not in self.timer_states:
             return
-
+    
         state = self.timer_states[user_id]
         current_session = state.session_type
-
+        current_preset = state.preset_type  # Store current preset
+    
         # Update task completion if it was a work session
         if current_session == 'work' and self.db:
             task = self.db.query(models.Task).filter(models.Task.id == state.task_id).first()
             if task:
                 task.completed_pomodoros += 1
                 self.db.commit()
-
+    
         # Automatically transition to the next session
         self.skip_to_next(user_id)
-        await self.sync_timer_state(user_id)
 
     async def sync_timer_state(self, user_id: str):
         """Send current timer state to all user's connections"""
@@ -231,7 +232,8 @@ class ConnectionManager:
                 "remaining_time": remaining_time,
                 "is_paused": state.is_paused,
                 "round_number": state.round_number,
-                "active_task": task_info
+                "active_task": task_info,
+                "preset_type": state.preset_type  # Include preset type in sync message
             },
         }
         await self.broadcast_to_user(user_id, message)

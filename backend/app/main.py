@@ -291,6 +291,21 @@ async def websocket_endpoint(
                     await manager.sync_timer_state(user_id)
                     await manager.broadcast_to_user(user_id, {"type": "rounds_reset"})
 
+                # Add a new handler for preset type changes
+                elif data["type"] == "change_preset":
+                    if user_id in manager.timer_states:
+                        manager.timer_states[user_id].preset_type = data["preset_type"]
+                        # Update timer duration based on new preset type and current session
+                        state = manager.timer_states[user_id]
+                        current_session = state.session_type
+                        if current_session == 'work':
+                            state.time_remaining = state.settings[data["preset_type"]]['work_duration'] * 60
+                        elif current_session == 'short_break':
+                            state.time_remaining = state.settings[data["preset_type"]]['short_break'] * 60
+                        else:  # long_break
+                            state.time_remaining = state.settings[data["preset_type"]]['long_break'] * 60
+                        await manager.sync_timer_state(user_id)
+
             except WebSocketDisconnect:
                 await manager.disconnect(websocket, user_id)
                 return

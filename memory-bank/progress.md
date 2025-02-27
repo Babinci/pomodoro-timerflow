@@ -1,7 +1,7 @@
 # Progress
 actual plans:
 
-timer problems:
+timer problems (current status- implemented changes of those now testing):
 - after long round- there is short break - it should be break from long preset- and i cant change break to long
 - after 1 round and 1 break- i saw "start break" button instead of "start"
 - when working in round and clicking pause- cant resume- screen "freezed"

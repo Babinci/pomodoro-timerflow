@@ -30,8 +30,10 @@ export default function useWebSocket(token) {
         wsRef.current = websocket;
         setWs(websocket);
 
-        // Request initial timer state sync
-        websocket.send(JSON.stringify({ type: 'sync_request' }));
+        // Request initial timer state sync including preset type
+        websocket.send(JSON.stringify({
+          type: 'sync_request'
+        }));
       };
       
       websocket.onmessage = (event) => {

@@ -7,9 +7,19 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
   const [isRunning, setIsRunning] = useState(false);
   const [sessionType, setSessionType] = useState('work');
   const [roundNumber, setRoundNumber] = useState(1);
-  const [presetType, setPresetType] = useState('short');
+  const [presetType, setPresetType] = useState(currentPreset || 'short');
   const [activeTask, setActiveTask] = useState(null);
   const [showStartBreak, setShowStartBreak] = useState(false);
+
+  // Notify server about preset type changes
+  useEffect(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: 'change_preset',
+        preset_type: presetType
+      }));
+    }
+  }, [presetType, ws]);
 
   // Handle incoming WebSocket messages
   useEffect(() => {
@@ -26,7 +36,8 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
           remaining_time,
           is_paused,
           round_number,
-          active_task
+          active_task,
+          preset_type  // Get preset type from server
         } = data.data;
             
         const formattedTime = `${Math.floor(remaining_time / 60).toString().padStart(2, '0')}:${(remaining_time % 60).toString().padStart(2, '0')}`;
@@ -35,6 +46,11 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
         setSessionType(session_type);
         setIsRunning(!is_paused);
         if (round_number) setRoundNumber(round_number);
+        
+        // Update preset type from server
+        if (preset_type) {
+          setPresetType(preset_type);
+        }
           
         // Update active task if provided
         if (active_task) {
@@ -113,7 +129,7 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
       return;
     }
 
-    if (!currentTask && sessionType === 'work') {
+    if (!currentTask && sessionType === 'work' && !activeTask) {
       alert('Please select a task first');
       return;
     }
@@ -124,7 +140,7 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
       task_id: currentTask?.id || activeTask?.id,
       session_type: sessionType,
       duration: timeLeft,
-      preset_type: presetType
+      preset_type: presetType  // Always send current preset type
     }));
   };
 
@@ -203,7 +219,15 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
                 styles.button,
                 presetType === 'short' && { backgroundColor: colors.primary }
               ]}
-              onPress={() => setPresetType('short')}
+              onPress={() => {
+                setPresetType('short');
+                if (ws?.readyState === WebSocket.OPEN) {
+                  ws.send(JSON.stringify({
+                    type: 'change_preset',
+                    preset_type: 'short'
+                  }));
+                }
+              }}
             >
               <Text style={styles.buttonText}>Short</Text>
             </TouchableOpacity>
@@ -212,7 +236,15 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
                 styles.button,
                 presetType === 'long' && { backgroundColor: colors.primary }
               ]}
-              onPress={() => setPresetType('long')}
+              onPress={() => {
+                setPresetType('long');
+                if (ws?.readyState === WebSocket.OPEN) {
+                  ws.send(JSON.stringify({
+                    type: 'change_preset',
+                    preset_type: 'long'
+                  }));
+                }
+              }}
             >
               <Text style={styles.buttonText}>Long</Text>
             </TouchableOpacity>
