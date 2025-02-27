@@ -1,8 +1,6 @@
 # Progress
-docker setup with success
-
 actual plans:
-- add user crud to backend and frontend- create/ delete user + google auth
+- add user crud to backend and frontend- create/ delete user 
 
 
 - websockets server and client usage optimization
@@ -12,3 +10,4 @@ actual plans:
 - reset all rounds button & each new day ronds are reset
 
 - optional bell ring at end of round
++ google auth
