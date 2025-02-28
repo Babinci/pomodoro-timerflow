@@ -58,10 +58,10 @@ Short vs Long preset configurations
 Affects durations:
 
 ```python
-# backend/ws_manager.py
-settings = {
+# From User model (database)
+user.pomodoro_settings = {
   'short': {
-    'work_duration': 25,
+    'work_duration': 25,  # User-configurable
     'short_break': 5,
     'long_break': 15,
     'sessions_before_long_break': 4
@@ -73,6 +73,7 @@ settings = {
     'sessions_before_long_break': 2
   }
 }
+# Stored in database, editable via user settings
 ```
 
 ### 2. Session Transitions
