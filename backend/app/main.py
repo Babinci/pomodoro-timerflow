@@ -21,7 +21,7 @@ from fastapi.responses import FileResponse
 import os
 import logging
 
-logging.basicConfig(level=logging.INFO, filename="/app/logs/error.log")
+logging.basicConfig(level=logging.INFO, filename="/app/logs/error.log", format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Directory for frontend static files

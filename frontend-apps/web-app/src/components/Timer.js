@@ -3,11 +3,10 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { styles, colors } from '../styles/styles';
 
 export default function Timer({ currentTask, currentPreset, setCurrentPreset, settings, ws: { ws, isConnected }, setTimerCountdown }) {
-  const [timeLeft, setTimeLeft] = useState(25 * 60);
+  const [timeLeft, setTimeLeft] = useState(settings?.[currentPreset]?.work_duration * 60 || 25 * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [sessionType, setSessionType] = useState('work');
   const [roundNumber, setRoundNumber] = useState(1);
-  const [presetType, setPresetType] = useState(currentPreset || 'short');
   const [activeTask, setActiveTask] = useState(null);
   const [showStartBreak, setShowStartBreak] = useState(false);
 
@@ -16,10 +15,10 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({
         type: 'change_preset',
-        preset_type: presetType
+        preset_type: currentPreset
       }));
     }
-  }, [presetType, ws]);
+  }, [currentPreset, ws]);
 
   // Handle incoming WebSocket messages
   useEffect(() => {
@@ -27,61 +26,26 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log('Timer received message:', data);
 
       if (data.type === 'timer_sync') {
-        const {
-          task_id,
-          session_type,
-          remaining_time,
-          is_paused,
-          round_number,
-          active_task,
-          preset_type  // Get preset type from server
-        } = data.data;
-            
-        const formattedTime = `${Math.floor(remaining_time / 60).toString().padStart(2, '0')}:${(remaining_time % 60).toString().padStart(2, '0')}`;
-        setTimeLeft(remaining_time);
-        setTimerCountdown(formattedTime);
-        setSessionType(session_type);
-        setIsRunning(!is_paused);
-        if (round_number) setRoundNumber(round_number);
+        const { preset_type, ...otherData } = data.data;
         
-        // Update preset type from server
-        if (preset_type) {
-          setPresetType(preset_type);
+        if (preset_type && preset_type !== currentPreset) {
+          setCurrentPreset(preset_type);
         }
-          
-        // Update active task if provided
-        if (active_task) {
-          setActiveTask(active_task);
-          // Show start break button when work session ends
-          if (remaining_time === 0 && session_type.includes('break')) {
+        
+        setTimeLeft(otherData.remaining_time);
+        setTimerCountdown(formatTime(otherData.remaining_time));
+        setSessionType(otherData.session_type);
+        setIsRunning(!otherData.is_paused);
+        if (otherData.round_number) setRoundNumber(otherData.round_number);
+        
+        if (otherData.active_task) {
+          setActiveTask(otherData.active_task);
+          if (otherData.remaining_time === 0 && otherData.session_type.includes('break')) {
             setShowStartBreak(true);
           }
         }
-      }
-
-      if (data.type === 'timer_stopped') {
-        setIsRunning(false);
-        setShowStartBreak(false);
-        updateTimerDurations();
-      }
-      if (data.type === 'rounds_reset') {
-        // Reset local round state
-        setRoundNumber(1);
-        setSessionType('work');
-        updateTimerDurations();
-        setIsRunning(false);
-        setShowStartBreak(false);
-      }
-      if (data.type === 'rounds_reset') {
-        // Reset local round state
-        setRoundNumber(1);
-        setSessionType('work');
-        updateTimerDurations();
-        setIsRunning(false);
-        setShowStartBreak(false);
       }
     };
   }, [ws]);
@@ -94,7 +58,7 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
 
   const updateTimerDurations = useCallback(() => {
     if (!settings) return;
-    const current = settings[presetType];
+    const current = settings[currentPreset];
           
     if (sessionType === 'work') {
       setTimeLeft(current.work_duration * 60);
@@ -103,11 +67,11 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
     } else if (sessionType === 'long_break') {
       setTimeLeft(current.long_break * 60);
     }
-  }, [settings, presetType, sessionType]);
+  }, [settings, currentPreset, sessionType]);
 
   useEffect(() => {
     updateTimerDurations();
-  }, [presetType, updateTimerDurations]);
+  }, [currentPreset, updateTimerDurations]);
 
   // Regular interval to request sync from server
   useEffect(() => {
@@ -116,12 +80,12 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
     const interval = setInterval(() => {
       ws.send(JSON.stringify({
         type: 'sync_request',
-        preset_type: presetType
+        preset_type: currentPreset
       }));
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [ws, isConnected, presetType]);
+  }, [ws, isConnected, currentPreset]);
 
   const startTimer = () => {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -140,7 +104,7 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
       task_id: currentTask?.id || activeTask?.id,
       session_type: sessionType,
       duration: timeLeft,
-      preset_type: presetType  // Always send current preset type
+      preset_type: currentPreset  // Always send current preset type
     }));
   };
 
@@ -217,10 +181,10 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
             <TouchableOpacity
               style={[
                 styles.button,
-                presetType === 'short' && { backgroundColor: colors.primary }
+                currentPreset === 'short' && { backgroundColor: colors.primary }
               ]}
               onPress={() => {
-                setPresetType('short');
+                setCurrentPreset('short');
                 if (ws?.readyState === WebSocket.OPEN) {
                   ws.send(JSON.stringify({
                     type: 'change_preset',
@@ -234,10 +198,10 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
             <TouchableOpacity
               style={[
                 styles.button,
-                presetType === 'long' && { backgroundColor: colors.primary }
+                currentPreset === 'long' && { backgroundColor: colors.primary }
               ]}
               onPress={() => {
-                setPresetType('long');
+                setCurrentPreset('long');
                 if (ws?.readyState === WebSocket.OPEN) {
                   ws.send(JSON.stringify({
                     type: 'change_preset',
