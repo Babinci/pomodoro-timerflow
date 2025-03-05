@@ -23,10 +23,10 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
   // Handle incoming WebSocket messages
   useEffect(() => {
     if (!ws) return;
-
+  
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-
+  
       if (data.type === 'timer_sync') {
         const { preset_type, ...otherData } = data.data;
         
@@ -39,6 +39,11 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
         setSessionType(otherData.session_type);
         setIsRunning(!otherData.is_paused);
         if (otherData.round_number) setRoundNumber(otherData.round_number);
+        
+        // Reset showStartBreak when session type changes to work
+        if (otherData.session_type === 'work') {
+          setShowStartBreak(false);
+        }
         
         if (otherData.active_task) {
           setActiveTask(otherData.active_task);

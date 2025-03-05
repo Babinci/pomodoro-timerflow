@@ -76,7 +76,12 @@ class ConnectionManager:
         """Start a new timer session with user's settings"""
         if not user_settings:
             raise ValueError("User settings are required")
-              
+        
+        # Preserve round_number if exists, otherwise default to 1
+        current_round = 1
+        if user_id in self.timer_states:
+            current_round = self.timer_states[user_id].round_number
+                
         self.timer_states[user_id] = TimerState(
             task_id=task_id,
             session_type=session_type,
@@ -84,6 +89,9 @@ class ConnectionManager:
             user_settings=user_settings,
             preset_type=preset_type
         )
+        
+        # Set the preserved round number
+        self.timer_states[user_id].round_number = current_round
         self.timer_states[user_id].resume()  # Start running immediately
         
         # Load and store the active task details
@@ -154,6 +162,7 @@ class ConnectionManager:
                     preset_type = 'short'  # Default preset
                     
                     # Create a new timer state with default values
+                    # Always initialize with 'work' session type
                     self.timer_states[user_id] = TimerState(
                         task_id=None,
                         session_type='work',
