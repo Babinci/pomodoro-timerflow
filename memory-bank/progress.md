@@ -19,7 +19,7 @@ new problems:
 what will be needed:
 - timers test
 
-
+- description field with more options for text formatting like tabs and pogrubiona czcionka
 - websockets server and client usage optimization
 - problems with pause time- after long work i can see short break and cant change to long
 - mess with timer
