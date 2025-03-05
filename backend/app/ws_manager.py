@@ -237,7 +237,21 @@ class ConnectionManager:
             },
         }
         await self.broadcast_to_user(user_id, message)
-
+    def refresh_user_settings(self, user_id: str, user_settings: dict):
+        """Update user settings in timer state"""
+        if user_id in self.timer_states:
+            self.timer_states[user_id].settings = user_settings
+            # Update remaining time based on current session type and preset
+            state = self.timer_states[user_id]
+            if state.is_paused:  # Only update time if timer is paused
+                current_session = state.session_type
+                current_preset = state.preset_type
+                if current_session == 'work':
+                    state.time_remaining = state.settings[current_preset]['work_duration'] * 60
+                elif current_session == 'short_break':
+                    state.time_remaining = state.settings[current_preset]['short_break'] * 60
+                else:  # long_break
+                    state.time_remaining = state.settings[current_preset]['long_break'] * 60
     async def broadcast_to_user(self, user_id: str, message: dict):
         """Send message to all user's connections"""
         if user_id in self.active_connections:

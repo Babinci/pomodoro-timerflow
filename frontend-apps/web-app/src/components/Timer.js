@@ -46,9 +46,17 @@ export default function Timer({ currentTask, currentPreset, setCurrentPreset, se
             setShowStartBreak(true);
           }
         }
+      } else if (data.type === 'settings_updated') {
+        // Force timer to update with new settings
+        if (ws?.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'sync_request',
+            preset_type: currentPreset
+          }));
+        }
       }
     };
-  }, [ws]);
+  }, [ws, currentPreset, setCurrentPreset, setTimerCountdown]);
 
   useEffect(() => {
     const formattedTime = formatTime(timeLeft);

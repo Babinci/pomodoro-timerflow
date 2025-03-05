@@ -38,7 +38,8 @@ export default function MainApp({ token, setToken }) {
           token={token}
           settings={settings}
           setSettings={setSettings}
-          setToken={setToken}  /* Pass setToken function to Settings */
+          setToken={setToken}
+          ws={ws}
         />
       </div>
     </div>

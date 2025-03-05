@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { styles } from '../styles/styles';
 import { apiConfig } from '../config/api';
 
-export default function Settings({ token, settings, setSettings, setToken }) {
+export default function Settings({ token, settings, setSettings, setToken, ws }) {
   const [shortWork, setShortWork] = useState('25');
   const [shortBreak, setShortBreak] = useState('5');
   const [shortLongBreak, setShortLongBreak] = useState('15');
@@ -70,7 +70,18 @@ export default function Settings({ token, settings, setSettings, setToken }) {
       });
 
       if (!response.ok) throw new Error('Failed to save settings');
+      
+      // Update local settings state
       setSettings(newSettings);
+      
+      // Force sync with server to update timer state
+      if (ws && ws.ws && ws.ws.readyState === WebSocket.OPEN) {
+        ws.ws.send(JSON.stringify({
+          type: 'settings_updated',
+          settings: newSettings
+        }));
+      }
+      
       alert('Settings saved successfully');
     } catch (error) {
       alert('Failed to save settings: ' + error.message);

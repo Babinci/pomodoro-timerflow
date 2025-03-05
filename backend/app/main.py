@@ -290,6 +290,22 @@ async def websocket_endpoint(
                     manager.reset_rounds(user_id)
                     await manager.sync_timer_state(user_id)
                     await manager.broadcast_to_user(user_id, {"type": "rounds_reset"})
+                elif data["type"] == "settings_updated":
+                    # Refresh the user settings in memory
+                    user = db.query(models.User).filter(models.User.id == user_id).first()
+                    if user_id in manager.timer_states:
+                        manager.timer_states[user_id].settings = user.pomodoro_settings
+                    
+                    # Notify all clients about settings update
+                    await manager.broadcast_to_user(user_id, {
+                        "type": "settings_updated",
+                        "data": {
+                            "settings": user.pomodoro_settings
+                        }
+                    })
+                    # Force timer state sync
+                    await manager.sync_timer_state(user_id)
+                
 
                 # Add a new handler for preset type changes
                 elif data["type"] == "change_preset":
