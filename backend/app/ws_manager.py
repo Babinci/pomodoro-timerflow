@@ -21,8 +21,10 @@ class TimerState:
 
     def update_remaining_time(self):
         """Update remaining time if timer is running"""
+        current_time = datetime.now(timezone.utc)
+        
         if not self.is_paused:
-            elapsed = (datetime.now(timezone.utc) - self.last_update).total_seconds()
+            elapsed = (current_time - self.last_update).total_seconds()
             new_time = max(0, self.time_remaining - elapsed)
             
             # Check if timer just reached 0
@@ -30,8 +32,7 @@ class TimerState:
                 self.session_completed = True
             
             self.time_remaining = new_time
-            
-        self.last_update = datetime.now(timezone.utc)
+            self.last_update = current_time  # Only update timestamp when timer is running
 
     def get_remaining_time(self) -> int:
         """Get current remaining time"""
@@ -192,18 +193,21 @@ class ConnectionManager:
         """Handle the completion of a timer session"""
         if user_id not in self.timer_states:
             return
-    
+
         state = self.timer_states[user_id]
         current_session = state.session_type
-        current_preset = state.preset_type  # Store current preset
-    
+        current_preset = state.preset_type
+
         # Update task completion if it was a work session
         if current_session == 'work' and self.db:
             task = self.db.query(models.Task).filter(models.Task.id == state.task_id).first()
             if task:
                 task.completed_pomodoros += 1
                 self.db.commit()
-    
+
+        # Update state to reflect completion
+        state.time_remaining = 0
+        
         # Automatically transition to the next session
         self.skip_to_next(user_id)
 
@@ -213,13 +217,21 @@ class ConnectionManager:
             return
 
         state = self.timer_states[user_id]
-        remaining_time = state.get_remaining_time()
         
-        # Check if session just completed
-        if state.session_completed:
-            state.session_completed = False  # Reset the flag
-            await self.handle_session_completion(user_id)
-            return
+        # Don't modify the actual state, just calculate the current time
+        current_time = datetime.now(timezone.utc)
+        remaining_time = state.time_remaining
+        
+        # Only calculate elapsed time if timer is running
+        if not state.is_paused:
+            elapsed = (current_time - state.last_update).total_seconds()
+            remaining_time = max(0, state.time_remaining - elapsed)
+            
+            # Check if timer just completed
+            if remaining_time == 0 and state.time_remaining > 0:
+                # Handle completion without modifying the state
+                await self.handle_session_completion(user_id)
+                return
 
         # Get updated task information
         task_info = None
@@ -238,14 +250,17 @@ class ConnectionManager:
             "data": {
                 "task_id": state.task_id,
                 "session_type": state.session_type,
-                "remaining_time": remaining_time,
+                "remaining_time": round(remaining_time),
                 "is_paused": state.is_paused,
                 "round_number": state.round_number,
                 "active_task": task_info,
-                "preset_type": state.preset_type  # Include preset type in sync message
+                "preset_type": state.preset_type
             },
         }
         await self.broadcast_to_user(user_id, message)
+
+
+
     def refresh_user_settings(self, user_id: str, user_settings: dict):
         """Update user settings in timer state"""
         if user_id in self.timer_states:
