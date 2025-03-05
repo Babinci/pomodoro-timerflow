@@ -16,7 +16,7 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
 
   const loadTasks = async () => {
     try {
-      const response = await fetch(`${apiConfig.baseUrl}/tasks`, {
+      const response = await fetch(`${apiConfig.baseUrl}/tasks/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -36,7 +36,7 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
     }
 
     try {
-      const response = await fetch(`${apiConfig.baseUrl}/tasks`, {
+      const response = await fetch(`${apiConfig.baseUrl}/tasks/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

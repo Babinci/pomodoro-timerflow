@@ -5,7 +5,7 @@ from .. import models, auth
 from ..database import get_db
 from ..ws_manager import manager
 
-router = APIRouter(tags=["pomodoro"])
+router = APIRouter(tags=["pomodoro_websocket"])
 
 logger = logging.getLogger(__name__)
 
