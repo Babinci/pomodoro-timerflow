@@ -3,9 +3,9 @@ from typing import Optional, Dict, List
 from datetime import datetime
 
 class PomodoroSettingsBase(BaseModel):
-    work_duration: int
-    short_break: int
-    long_break: int
+    work_duration: float
+    short_break: float
+    long_break: float
     sessions_before_long_break: int = 4
 
 class UserSettings(BaseModel):

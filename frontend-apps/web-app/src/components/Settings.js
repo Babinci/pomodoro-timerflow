@@ -46,15 +46,15 @@ export default function Settings({ token, settings, setSettings, setToken, ws })
     e.preventDefault();
     const newSettings = {
       short: {
-        work_duration: parseInt(shortWork),
-        short_break: parseInt(shortBreak),
-        long_break: parseInt(shortLongBreak),
+        work_duration: parseFloat(shortWork),
+        short_break: parseFloat(shortBreak),
+        long_break: parseFloat(shortLongBreak),
         sessions_before_long_break: 4
       },
       long: {
-        work_duration: parseInt(longWork),
-        short_break: parseInt(longBreak),
-        long_break: parseInt(longLongBreak),
+        work_duration: parseFloat(longWork),
+        short_break: parseFloat(longBreak),
+        long_break: parseFloat(longLongBreak),
         sessions_before_long_break: 4
       }
     };
