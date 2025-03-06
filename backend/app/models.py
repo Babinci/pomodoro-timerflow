@@ -46,17 +46,23 @@ class Task(Base):
     user = relationship("User", back_populates="tasks")
     sessions = relationship("PomodoroSession", back_populates="task")
 
-class PomodoroSession(Base):
-    __tablename__ = "pomodoro_sessions"
+# class PomodoroCheckpoint(Base):
+#     __tablename__ = "pomodoro_checkpoints"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    task_id = Column(Integer, ForeignKey("tasks.id"))
-    start_time = Column(DateTime, default=datetime.utcnow)
-    end_time = Column(DateTime, nullable=True)
-    session_type = Column(String)  # 'work', 'short_break', 'long_break'
-    completed = Column(Boolean, default=False)
-    current_session_number = Column(Integer)  # Track which session in the cycle (1-4)
+#     id = Column(Integer, primary_key=True, index=True)
+#     user_id = Column(Integer, ForeignKey("users.id"))
+#     task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
+#     checkpoint_type = Column(String)  # Using string but will validate against enum
+#     timestamp = Column(DateTime, default=datetime.utcnow)
+#     remaining_time = Column(Integer)
+#     session_type = Column(String)  # 'work', 'short_break', 'long_break'
+#     is_paused = Column(Boolean, default=False)
+#     round_number = Column(Integer)
+#     preset_type = Column(String)  # 'short', 'long'
+#     last_active = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    user = relationship("User", back_populates="sessions")
-    task = relationship("Task", back_populates="sessions")
+#     user = relationship("User", backref="checkpoints")
+#     task = relationship("Task", backref="checkpoints")
+
+
+

@@ -2,6 +2,31 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, Dict, List
 from datetime import datetime
 
+from enum import Enum
+
+class CheckpointType(str, Enum):
+    WORK_STARTED = "work_started"
+    WORK_COMPLETED = "work_completed"
+    WORK_INTERRUPTED = "work_interrupted"
+    SHORT_BREAK_STARTED = "short_break_started"
+    SHORT_BREAK_COMPLETED = "short_break_completed"
+    SHORT_BREAK_INTERRUPTED = "short_break_interrupted"
+    LONG_BREAK_STARTED = "long_break_started"
+    LONG_BREAK_COMPLETED = "long_break_completed"
+    LONG_BREAK_INTERRUPTED = "long_break_interrupted"
+    SESSION_PAUSED = "session_paused"
+    SESSION_RESUMED = "session_resumed"
+
+class SessionType(str, Enum):
+    WORK = "work"
+    SHORT_BREAK = "short_break"
+    LONG_BREAK = "long_break"
+
+class PresetType(str, Enum):
+    SHORT = "short"
+    LONG = "long"
+
+
 class PomodoroSettingsBase(BaseModel):
     work_duration: float
     short_break: float
