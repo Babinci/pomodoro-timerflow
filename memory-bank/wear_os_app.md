@@ -8,7 +8,7 @@ i want to see actual task on watch not with browser
 react-native-wear-connectivity as technology
 
 
-
+i will test on samsung galaxy smartwatch 4
 
 
 some proposed solution

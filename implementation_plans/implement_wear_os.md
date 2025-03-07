@@ -34,20 +34,20 @@ npx @react-native-community/cli@latest init PomodoroWear
 
 cd PomodoroWear
 ```
-
+status: done
 ## Step 4: Install Dependencies
 
 ```bash
-npm install react-native-wear-os
-npm install react-native-wear-connectivity
-npm install @react-navigation/native
-npm install @react-navigation/material-top-tabs
-npm install react-native-tab-view
-npm install react-native-reanimated
-npm install react-native-gesture-handler
-npm install react-native-screens
-npm install react-native-safe-area-context
-npm install @react-native-async-storage/async-storage
+npm install react-native-wear-os   - error: npm error 404 Not Found - GET https://registry.npmjs.org/react-native-wear-os - Not found
+npm install react-native-wear-connectivity- success: added 1 package, and audited 931 packages in 3s
+npm install @react-navigation/native- success:  added 12 packages, and audited 943 packages in 3s
+npm install @react-navigation/material-top-tabs- success:  added 9 packages, and audited 952 packages in 6s
+npm install react-native-tab-view- success: up to date, audited 952 packages in 3s
+npm install react-native-reanimated- success: added 2 packages, and audited 954 packages in 4s
+npm install react-native-gesture-handler- success:  added 5 packages, and audited 959 packages in 4s
+npm install react-native-screens- success:  added 3 packages, and audited 962 packages in 3s
+npm install react-native-safe-area-context- success: up to date, audited 962 packages in 3s
+npm install @react-native-async-storage/async-storage success: added 3 packages, and audited 965 packages in 3s
 ```
 
 ## Step 5: Create Project Structure
