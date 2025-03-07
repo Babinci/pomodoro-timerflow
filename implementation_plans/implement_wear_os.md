@@ -24,6 +24,9 @@ mkdir -p frontend-apps/wear-app
 cd frontend-apps/wear-app
 ```
 
+status: done
+
+
 ## Step 3: Initialize the React Native Project
 
 ```bash
