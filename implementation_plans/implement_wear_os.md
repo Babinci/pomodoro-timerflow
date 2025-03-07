@@ -30,7 +30,8 @@ status: done
 ## Step 3: Initialize the React Native Project
 
 ```bash
-npx react-native init PomodoroWear
+npx @react-native-community/cli@latest init PomodoroWear
+
 cd PomodoroWear
 ```
 
