@@ -38,7 +38,7 @@ status: done
 ## Step 4: Install Dependencies
 
 ```bash
-npm install react-native-wear-os   - error: npm error 404 Not Found - GET https://registry.npmjs.org/react-native-wear-os - Not found
+npm install react-native-wear-os   - error: npm error 404 Not Found - GET https://registry.npmjs.org/react-native-wear-os - Not found  <--- irrelevant- we are ommiting this
 npm install react-native-wear-connectivity- success: added 1 package, and audited 931 packages in 3s
 npm install @react-navigation/native- success:  added 12 packages, and audited 943 packages in 3s
 npm install @react-navigation/material-top-tabs- success:  added 9 packages, and audited 952 packages in 6s
@@ -49,7 +49,7 @@ npm install react-native-screens- success:  added 3 packages, and audited 962 pa
 npm install react-native-safe-area-context- success: up to date, audited 962 packages in 3s
 npm install @react-native-async-storage/async-storage success: added 3 packages, and audited 965 packages in 3s
 ```
-
+status: done, ommiting 
 ## Step 5: Create Project Structure
 
 Create the following directory structure:
@@ -66,9 +66,9 @@ src/
 │   ├── ControlsScreen.js
 │   └── TaskDescriptionScreen.js
 └── services/
-    └── wearConnectivity.js
+    └── wearConnectivity.js   <--- i have this file blank
 ```
-
+status 
 ## Step 6: Configure Android for Wear OS
 
 1. Update the `android/app/build.gradle` file with the Wear OS configurations as provided in the setup code.
