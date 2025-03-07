@@ -17,15 +17,6 @@ Before getting started, ensure you have the following installed:
   - ESLint
   - Prettier
 
-## Step 1: Clone the Project Repository
-
-If you haven't already, clone your existing Pomodoro TimerFlow repository:
-
-```bash
-git clone <your-repository-url>
-cd <repository-directory>
-```
-
 ## Step 2: Create the Wear OS App Directory
 
 ```bash
