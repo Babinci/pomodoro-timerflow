@@ -1,3 +1,15 @@
+for reference actual:
+https://claude.ai/chat/72a07267-8664-4a63-8e36-3090c588e013
+
+installed java:
+
+sudo apt install openjdk-11-jdk
+
+to do: install Android Studio
+
+installed:
+sudo snap install android-studio --classic
+
 # Pomodoro TimerFlow Wear OS App Setup Guide
 
 This guide will walk you through setting up and running the Pomodoro TimerFlow Wear OS app.
