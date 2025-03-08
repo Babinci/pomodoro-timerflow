@@ -1,15 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
-
+    <uses-permission android:name="android.permission.VIBRATE" />
+    
+    <!-- Wear OS specific permissions -->
+    <uses-feature android:name="android.hardware.type.watch" />
+    
     <application
       android:name=".MainApplication"
       android:label="@string/app_name"
       android:icon="@mipmap/ic_launcher"
       android:roundIcon="@mipmap/ic_launcher_round"
       android:allowBackup="false"
-      android:theme="@style/AppTheme"
-      android:supportsRtl="true">
+      android:theme="@style/AppTheme">
+      
+      <!-- Wear OS specific meta-data -->
+      <meta-data
+          android:name="com.google.android.wearable.standalone"
+          android:value="true" />
+      
       <activity
         android:name=".MainActivity"
         android:label="@string/app_name"

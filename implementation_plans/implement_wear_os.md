@@ -68,16 +68,26 @@ src/
 └── services/
     └── wearConnectivity.js   <--- i have this file blank
 ```
-status 
+status
 ## Step 6: Configure Android for Wear OS
 
 1. Update the `android/app/build.gradle` file with the Wear OS configurations as provided in the setup code.
 2. Update the `android/app/src/main/AndroidManifest.xml` file to include Wear OS features and permissions.
 
+
+status: done
 ## Step 7: Configure Project Files
 
 Copy the provided code files to their respective locations in the project structure.
 
+
+status: some files were copied from frontend-apps/wear-app/generated_components to frontend-apps/wear-app/PomodoroWear/src
+
+to check, definitely  wearConnectivity.js is blank
+
+
+
+below are steps that was proposed, but i am thinking of using Android iOS Emulator directly within vs code
 ## Step 8: Setup Android Studio for Wear OS
 
 1. Open Android Studio

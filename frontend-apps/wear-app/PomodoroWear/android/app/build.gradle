@@ -1,3 +1,13 @@
+Looking at the wear OS configurations to add to the build.gradle file, I need to:
+1. Add Wear OS product flavors
+2. Add Wear OS specific dependencies
+3. Keep existing configuration
+
+I'll update the build.gradle file by adding these Wear OS specific configurations while keeping all the existing code intact.
+
+Here's how the full android/app/build.gradle should look after the updates:
+
+```gradle
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
@@ -105,6 +115,15 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+    
+    // Add the Wear OS capability
+    productFlavors {
+        wear {
+            dimension "wear"
+            targetSdkVersion 30
+            resValue "string", "app_name", "Pomodoro TimerFlow"
+        }
+    }
 }
 
 dependencies {
@@ -116,4 +135,8 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+    
+    // Add Wear OS dependencies
+    implementation "com.google.android.gms:play-services-wearable:17.1.0"
+    implementation "androidx.wear:wear:1.2.0"
 }
