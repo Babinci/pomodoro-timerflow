@@ -88,6 +88,10 @@ to check, definitely  wearConnectivity.js is blank
 
 
 below are steps that was proposed, but i am thinking of using Android iOS Emulator directly within vs code
+
+so installed  React Native Tools and   Android iOS Emulator 
+
+
 ## Step 8: Setup Android Studio for Wear OS
 
 1. Open Android Studio
