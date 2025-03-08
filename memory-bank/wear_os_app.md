@@ -11,7 +11,23 @@ react-native-wear-connectivity as technology
 i will test on samsung galaxy smartwatch 4
 
 
-some proposed solution
+my requirements:
+
+
+i want to develop now app for smartwatch
+
+in app  i want just login and timer 
+after login- to remember user on smartwatch
+
+timer in smartwatch should have this flow:
+it should have start/ stop button and display task name (more visible) and number of round name (less visible)
+it should have 2 more tabs:
+one tab with rest of buttons (in this tab we should be also able to see timer)
+and last tab with task description
+
+
+
+some proposed  from claude
 
 Smartwatch App for Pomodoro Timer Brainstorming
 Looking at your existing Pomodoro timer setup and the desire to extend it to a smartwatch, I can see this would be a valuable addition to your cross-platform system. Let me outline a potential solution using react-native-wear-connectivity.
