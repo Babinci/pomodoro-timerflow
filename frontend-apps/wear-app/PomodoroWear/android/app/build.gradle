@@ -18,6 +18,10 @@ react {
 
 android {
     namespace "com.pomodorowear"
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    
+    // Define flavor dimensions
+    flavorDimensions "wear"
     defaultConfig {
         applicationId "com.pomodorowear"
         minSdkVersion rootProject.ext.minSdkVersion
