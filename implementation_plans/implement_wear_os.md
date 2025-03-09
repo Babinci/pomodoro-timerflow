@@ -1,5 +1,9 @@
-for reference actual:
-https://claude.ai/chat/72a07267-8664-4a63-8e36-3090c588e013
+Main  challenge currently: how to launch wear os emulator to see code issues
+
+
+Big picture- automatic updates and development wear os app- first on galaxy smartwatch 4 later on all smartwatches
+
+
 
 installed java:
 
@@ -10,6 +14,21 @@ to do: install Android Studio
 installed:
 sudo snap install android-studio --classic
 
+android-studio 2024.1.1.11-Koala from Snapcrafters✪ installed
+
+
+more installed on linux:
+
+sudo apt-get update
+sudo apt-get install android-sdk
+sudo apt-get install android-tools-adb
+sudo apt-get install adb
+
+
+status: installed on linux
+
+status:
+to test wear os- android studio on windows- chosen
 # Pomodoro TimerFlow Wear OS App Setup Guide
 
 This guide will walk you through setting up and running the Pomodoro TimerFlow Wear OS app.
