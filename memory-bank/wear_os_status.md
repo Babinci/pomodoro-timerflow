@@ -17,6 +17,9 @@
 - making build of wear os app to launch in android studio
 
 
+Chosen development workflow:
+- developing wear os in android studio in windows- with git syncs beetween linux pc
+
 
 build success!!
 wojtek@wojtek-Latitude-E6420:~/It_Projects/pomodoro-timerflow/frontend-apps/wear-app/PomodoroWear/android$ ./gradlew assembleDebug
