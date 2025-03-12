@@ -7,14 +7,16 @@ from alembic.config import Config
 from alembic import command
 
 def get_alembic_config():
-    # Get the directory where this script is located
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    # Navigate to alembic.ini location (adjust path as needed)
-    alembic_ini = os.path.join(script_dir, 'alembic', 'alembic.ini')
+    # Adjust path to find alembic.ini inside the app directory
+    alembic_ini = os.path.join("/app/app/alembic", "alembic.ini")
     
     # Create Alembic config
     alembic_cfg = Config(alembic_ini)
+    
+    # Set scripts location
+    script_location = os.path.join("/app/app", "alembic")
+    alembic_cfg.set_main_option("script_location", script_location)
+    
     return alembic_cfg
 
 def create_migration(message):
