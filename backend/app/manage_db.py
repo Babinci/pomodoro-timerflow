@@ -8,7 +8,7 @@ from alembic import command
 
 def get_alembic_config():
     # Adjust path to find alembic.ini inside the app directory
-    alembic_ini = os.path.join("/app/app/alembic", "alembic.ini")
+    alembic_ini = os.path.join("/app/app", "alembic.ini")
     
     # Create Alembic config
     alembic_cfg = Config(alembic_ini)
