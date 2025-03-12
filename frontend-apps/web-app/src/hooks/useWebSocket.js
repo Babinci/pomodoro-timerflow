@@ -2,13 +2,19 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiConfig } from '../config/api';
 
-export default function useWebSocket(token) {
+export default function useWebSocket(token, onMessageCallback = null) {
   const [ws, setWs] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const reconnectAttempt = useRef(0);
   const MAX_RECONNECT_ATTEMPTS = 5;
   const RECONNECT_INTERVAL = 2000;
   const wsRef = useRef(null);
+  const messageCallbackRef = useRef(onMessageCallback);
+  
+  // Update the callback ref when the callback changes
+  useEffect(() => {
+    messageCallbackRef.current = onMessageCallback;
+  }, [onMessageCallback]);
 
   const connectWebSocket = useCallback(() => {
     if (!token) return;
@@ -40,6 +46,11 @@ export default function useWebSocket(token) {
         try {
           const data = JSON.parse(event.data);
           console.log('WebSocket message received:', data);
+          
+          // Call the callback function if provided
+          if (messageCallbackRef.current) {
+            messageCallbackRef.current(data);
+          }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
         }

@@ -95,6 +95,9 @@ class PomodoroSession(PomodoroSessionBase):
     class Config:
         from_attributes = True
 
+class TaskOrder(BaseModel):
+    task_ids: List[int]
+
 class WSMessage(BaseModel):
     type: str
     data: dict

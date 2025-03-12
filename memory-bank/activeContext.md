@@ -46,3 +46,27 @@ timer problems (current status- implemented changes of those now testing):
 
 ## Status
 bugs seems to be fixed, moving to wear os app
+
+## Task: Implement draggable task ordering
+
+**Objective:** Implement draggable task ordering in the web app, involving changes in both the backend and frontend.
+
+**Steps Taken:**
+
+1.  **Planning:** Created an initial implementation plan that included database schema updates, backend API changes, frontend component updates, and WebSocket integration.
+2.  **Revised Plan:** Adjusted the plan to exclude database migrations based on user feedback.
+3.  **Frontend Implementation:**
+    *   Installed the `react-beautiful-dnd` package.
+    *   Modified the `TaskList` component to incorporate drag-and-drop functionality using `react-beautiful-dnd`.
+    *   Implemented functions to save and update task order in local storage.
+4.  **Backend Adjustments:**
+    *   Modified the tasks router to handle task ordering without database schema changes.
+    *   Added a new endpoint (`/tasks/order`) to update the task order.
+    *   Modified the schemas to include a `TaskOrder` schema.
+5.  **WebSocket Integration:**
+    *   Modified the `useWebSocket` hook to handle task order updates.
+    *   Updated the `TaskList` component to use the WebSocket for real-time order updates.
+
+**Current Status:**
+
+The implementation is complete, but the user is reporting that they are unable to reorder tasks by dragging. Further debugging is required.
