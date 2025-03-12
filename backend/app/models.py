@@ -62,23 +62,21 @@ class PomodoroSession(Base):
     user = relationship("User", back_populates="sessions")
     task = relationship("Task", back_populates="sessions")
 
-# class PomodoroCheckpoint(Base):
-#     __tablename__ = "pomodoro_checkpoints"
+class PomodoroCheckpoint(Base):
+    __tablename__ = "pomodoro_checkpoints"
 
-#     id = Column(Integer, primary_key=True, index=True)
-#     user_id = Column(Integer, ForeignKey("users.id"))
-#     task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
-#     checkpoint_type = Column(String)  # Using string but will validate against enum
-#     timestamp = Column(DateTime, default=datetime.utcnow)
-#     remaining_time = Column(Integer)
-#     session_type = Column(String)  # 'work', 'short_break', 'long_break'
-#     is_paused = Column(Boolean, default=False)
-#     round_number = Column(Integer)
-#     preset_type = Column(String)  # 'short', 'long'
-#     last_active = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
+    checkpoint_type = Column(String)  # Using string but will validate against enum
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    remaining_time = Column(Integer)
+    session_type = Column(String)  # 'work', 'short_break', 'long_break'
+    is_paused = Column(Boolean, default=False)
+    round_number = Column(Integer)
+    preset_type = Column(String)  # 'short', 'long'
+    last_active = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-#     user = relationship("User", backref="checkpoints")
-#     task = relationship("Task", backref="checkpoints")
 
 
 
