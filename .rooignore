@@ -87,3 +87,9 @@ prompts
 update_google_docs_code.py
 logs
 prompt.md
+
+frontend-apps/web-app/package-lock.json
+frontend-apps/wear-app/PomodoroWear/ios
+frontend-apps/wear-app/PomodoroWear/package-lock.json
+frontend-apps/web-app/build
+frontend-apps/web-app/node_modules

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { styles, colors } from '../styles/styles';
 import { apiConfig } from '../config/api';
+import useWindowDimensions from '../hooks/useWindowDimensions';
 
 export default function TaskList({ token, currentTask, setCurrentTask }) {
   const [tasks, setTasks] = useState([]);
@@ -9,6 +10,7 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
   const [estimatedPomodoros, setEstimatedPomodoros] = useState('1');
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editDescription, setEditDescription] = useState('');
+  const { isSmallScreen } = useWindowDimensions();
 
   useEffect(() => {
     loadTasks();
@@ -170,7 +172,8 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
             key={task.id}
             style={[
               styles.taskItem,
-              currentTask?.id === task.id && styles.taskItemActive
+              currentTask?.id === task.id && styles.taskItemActive,
+              isSmallScreen && { flexDirection: 'column', alignItems: 'stretch' }
             ]}
           >
             <View style={{ flex: 1 }}>
@@ -265,7 +268,10 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
                 <Text style={styles.smallText}> Pomodoros</Text>
               </View>
             </View>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={[
+              { flexDirection: 'row', gap: 8 },
+              isSmallScreen && { marginTop: 12, justifyContent: 'flex-end' }
+            ]}>
               <TouchableOpacity
                 style={[styles.button, { paddingHorizontal: 16, paddingVertical: 8 }]}
                 onPress={() => setCurrentTask(task)}
