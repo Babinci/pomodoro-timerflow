@@ -195,6 +195,7 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
 
   // Handle the end of a drag operation
   const handleDragEnd = (result) => {
+    console.log('Drag result:', result); // Add debug logging
     // Dropped outside the list
     if (!result.destination) {
       return;
@@ -213,6 +214,10 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
 
     // Update order on the backend
     updateTasksOrder(reorderedTasks);
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Reordered tasks:', reorderedTasks); // Visual state confirmation
+    }
   };
 
   // Send the updated task order to the backend
