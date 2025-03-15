@@ -4,6 +4,7 @@ docker stop pomodoro-app-container || true
 docker rm pomodoro-app-container || true
 docker build -t pomodoro-app .
 mkdir -p logs
+mkdir -p db_local  # Ensure database directory exists
 
 # Use bind mount for the database instead of volume
 docker run -d -p 8003:8003 \
@@ -16,6 +17,8 @@ docker run -d -p 8003:8003 \
 echo "Waiting for container to start..."
 sleep 5
 
-# Apply migrations automatically
-echo "Applying database migrations..."
-./backend/db_migrate.sh migrate
+# NOTE: We're not automatically applying migrations here anymore
+# to match Django's workflow where you manually run migrate after making changes
+echo "Container started. You can now run:"
+echo "  ./backend/db_migrate.sh migrate"
+echo "to apply any pending migrations"

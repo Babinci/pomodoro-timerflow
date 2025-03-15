@@ -8,9 +8,6 @@ if [ ! "$(docker ps -q -f name=$CONTAINER_NAME)" ]; then
     exit 1
 fi
 
-# First, let's find exactly where the file should be
-docker exec -it $CONTAINER_NAME find /app -name "manage_db.py"
-
 if [ "$1" = "makemigrations" ]; then
     if [ -z "$2" ]; then
         echo "Error: Migration message is required"

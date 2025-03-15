@@ -8,13 +8,13 @@ from alembic import command
 
 def get_alembic_config():
     # Use correct paths matching Docker container structure
-    alembic_ini = os.path.join("/app", "alembic.ini")
+    alembic_ini = os.path.join("/app", "app", "alembic.ini")
     
     # Create Alembic config
     alembic_cfg = Config(alembic_ini)
     
     # Set scripts location
-    script_location = os.path.join("/app", "alembic")
+    script_location = os.path.join("/app", "app", "alembic")
     alembic_cfg.set_main_option("script_location", script_location)
     
     return alembic_cfg

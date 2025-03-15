@@ -20,7 +20,7 @@ config.set_main_option("sqlalchemy.url", SQLALCHEMY_DATABASE_URL)
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Set target metadata to your models' metadata - THIS IS THE KEY FIX
+# Set target metadata to your models' metadata
 target_metadata = Base.metadata
 
 # Rest of the existing functions remain the same

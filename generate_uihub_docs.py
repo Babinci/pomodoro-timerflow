@@ -201,8 +201,6 @@ base_url = "https://uithub.com/Babinci/pomodoro-timerflow/tree/master"
 folders_to_choose = [
     "backend",
     "memory-bank",
-    "mcp-agent/examples",
-    "mcp-agent/schema",
 ]
 files_to_choose = ["Dockerfile", "restart_docker.sh"]
 exclude_dirs = []  # Folders to exclude

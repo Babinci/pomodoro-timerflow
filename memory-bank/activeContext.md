@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Work Focus
-- Resolve on forever migrations problems
+- Resolve on forever migrations problems - MOST IMPORTANT- DATABASE MCP SERVER INTEGRATION AND POSTGRES MCP SERVER CHOOSING0 supabase with tables- chosen option, later websockets and auth change 
 - Implement draggable task ordering (frontend/backend/)
 - Resolve web app connection longevity issues
 - Wear OS app development (current phase: build setup)
