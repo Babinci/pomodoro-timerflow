@@ -1,6 +1,7 @@
 
 #Project information
 - Relevant project information is in memory-bank directory
+- understanding deployment and docker- Dockerfile and restart_docker.sh
 
 # Fundamental Principles
 - Write clean, simple, readable code
@@ -29,13 +30,7 @@
 
 
 # Thinking patterns
-When you create implementation plan- make it very specific and precise- with numbered steps
-path examples:
-/home/wojtek/It_Projects/pomodoro-timerflow/backend/app/main.py
-or  /home/wojtek/It_Projects/pomodoro-timerflow/frontend-apps/web-app/src/App.js
-with very precise description what to change and why
-if something to remove- write what to remove with comments start/ stop, if something to change- write what to change/ add 
-It will be executed by other cheaper llm that needs very precise instructions
+When you create implementation plan- make it very specific and precise- with numbered steps and very precise description what to change and why
 
 
 ## Thinking patterns

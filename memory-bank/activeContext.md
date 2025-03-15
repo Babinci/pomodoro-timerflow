@@ -1,6 +1,7 @@
 # Active Context
 
 ## Current Work Focus
+- Resolve on forever migrations problems
 - Implement draggable task ordering (frontend/backend/)
 - Resolve web app connection longevity issues
 - Wear OS app development (current phase: build setup)

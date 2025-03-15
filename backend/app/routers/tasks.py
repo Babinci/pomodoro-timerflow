@@ -111,36 +111,61 @@ def update_tasks_order(
     current_user: models.User = Depends(auth.get_current_user),
 ):
     """Update the order of tasks for a user"""
-    # Verify all tasks belong to the current user
-    user_tasks = db.query(models.Task).filter(
-        models.Task.user_id == current_user.id,
-        models.Task.id.in_(task_order.task_ids)
-    ).all()
+    # Validate input
+    if not task_order.task_ids:
+        raise HTTPException(status_code=400, detail="Task IDs list cannot be empty")
     
-    # Check if all requested task IDs belong to the user
-    if len(user_tasks) != len(task_order.task_ids):
-        raise HTTPException(status_code=400, detail="Invalid task IDs")
-    
-    # Create a mapping of task IDs to their tasks
-    task_map = {task.id: task for task in user_tasks}
-    
-    # Update positions
-    for index, task_id in enumerate(task_order.task_ids):
-        task = task_map.get(task_id)
-        if task:
-            task.position = index + 1
-    
-    db.commit()
-    
-    # Broadcast the order change to all connected clients for this user
-    asyncio.create_task(
-        manager.broadcast_to_user(
-            str(current_user.id),
-            {
-                "type": "task_order_updated",
-                "data": {"task_ids": task_order.task_ids}
-            }
+    # Start a transaction
+    try:
+        # Verify all tasks belong to the current user
+        user_tasks = db.query(models.Task).filter(
+            models.Task.user_id == current_user.id,
+            models.Task.id.in_(task_order.task_ids)
+        ).all()
+        
+        # Check if all requested task IDs belong to the user
+        if len(user_tasks) != len(task_order.task_ids):
+            raise HTTPException(status_code=400, detail="Invalid task IDs")
+        
+        # Check for duplicate task IDs
+        if len(task_order.task_ids) != len(set(task_order.task_ids)):
+            raise HTTPException(status_code=400, detail="Duplicate task IDs found")
+        
+        # Create a mapping of task IDs to their tasks
+        task_map = {task.id: task for task in user_tasks}
+        
+        # Update positions
+        for index, task_id in enumerate(task_order.task_ids):
+            task = task_map.get(task_id)
+            if task:
+                task.position = index + 1
+        
+        db.commit()
+        
+        # Broadcast the order change to all connected clients for this user
+        asyncio.create_task(
+            manager.broadcast_to_user(
+                str(current_user.id),
+                {
+                    "type": "task_order_updated",
+                    "data": {"task_ids": task_order.task_ids}
+                }
+            )
         )
-    )
-    
-    return {"status": "success"}
+        
+        # Return updated task order for verification
+        return {
+            "status": "success",
+            "data": {
+                "task_ids": task_order.task_ids,
+                "updated_count": len(user_tasks)
+            }
+        }
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        db.rollback()
+        raise
+    except Exception as e:
+        # Roll back transaction on error
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to update task order: {str(e)}")

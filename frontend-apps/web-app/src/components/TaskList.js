@@ -5,6 +5,7 @@ import { apiConfig } from '../config/api';
 import useWindowDimensions from '../hooks/useWindowDimensions';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import useWebSocket from '../hooks/useWebSocket';
+import { updateTaskOrder, saveTaskOrderLocally } from '../services/taskService';
 
 export default function TaskList({ token, currentTask, setCurrentTask }) {
   const [tasks, setTasks] = useState([]);
@@ -40,7 +41,7 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
         console.log('Ordered tasks array:', orderedTasks.map(t => t.id));
         setTasks(orderedTasks);
         // Update localStorage with the new order
-        saveTaskOrder(orderedTasks);
+        saveTaskOrderLocally(orderedTasks);
       }
     }
   }, [tasks]);
@@ -193,15 +194,11 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
   // Save the current task order to localStorage
   const saveTaskOrder = (orderedTasks) => {
     console.log('Saving task order to localStorage:', orderedTasks.map(t => t.id));
-    const orderMap = {};
-    orderedTasks.forEach((task, index) => {
-      orderMap[task.id] = index;
-    });
-    localStorage.setItem('taskOrder', JSON.stringify(orderMap));
+    saveTaskOrderLocally(orderedTasks);
   };
 
   // Handle the end of a drag operation
-  const handleDragEnd = (result) => {
+  const handleDragEnd = async (result) => {
     console.log('Drag end event triggered:', result);
     
     if (!result.destination) {
@@ -222,38 +219,19 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
     // Save order to localStorage
     saveTaskOrder(reorderedTasks);
 
-    // Update order on the backend
-    updateTasksOrder(reorderedTasks);
-
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Reordered tasks:', reorderedTasks); // Visual state confirmation
-    }
-  };
-
-  // Send the updated task order to the backend
-  const updateTasksOrder = async (orderedTasks) => {
+    // Update order on the backend using the service
     try {
-      const taskIds = orderedTasks.map(task => task.id);
+      const taskIds = reorderedTasks.map(task => task.id);
       console.log('Sending updated task order to server:', taskIds);
-      
-      const response = await fetch(`${apiConfig.baseUrl}/tasks/order`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ task_ids: taskIds })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Server error updating task order:', errorData);
-        throw new Error('Failed to update task order');
-      }
-      
+      await updateTaskOrder(taskIds, token);
       console.log('Task order successfully updated on server');
     } catch (error) {
       console.error('Error updating task order:', error);
+      // Optionally show an error message to the user
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Reordered tasks:', reorderedTasks); // Visual state confirmation
     }
   };
 
