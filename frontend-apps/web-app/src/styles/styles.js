@@ -103,6 +103,18 @@ export const styles = StyleSheet.create({
     borderColor: colors.primary,
     borderWidth: 1,
   },
+  dragHandle: {
+    width: 20, 
+    height: 20,
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taskItemWrapper: {
+    position: 'relative',
+    marginBottom: 8,
+    cursor: 'grab',
+  },
 
   // Settings specific
   settingsGrid: {

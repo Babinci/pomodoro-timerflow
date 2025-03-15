@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
 import asyncio
 from .. import models, schemas, auth
@@ -14,7 +15,17 @@ def create_task(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    db_task = models.Task(**task.dict(), user_id=current_user.id)
+    # Find the highest position number for this user's tasks
+    highest_position = db.query(func.max(models.Task.position)).filter(
+        models.Task.user_id == current_user.id
+    ).scalar() or 0
+    
+    # Create task with position = highest + 1
+    db_task = models.Task(
+        **task.dict(), 
+        user_id=current_user.id,
+        position=highest_position + 1
+    )
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
@@ -26,7 +37,10 @@ def get_tasks(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    return db.query(models.Task).filter(models.Task.user_id == current_user.id).all()
+    # Return tasks ordered by position
+    return db.query(models.Task).filter(
+        models.Task.user_id == current_user.id
+    ).order_by(models.Task.position).all()
 
 
 @router.put("/{task_id}")
@@ -66,13 +80,26 @@ def delete_task(
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
 
+    # Get the position of the task to be deleted
+    deleted_position = db_task.position
+
     # Delete associated sessions first
     db.query(models.PomodoroSession).filter(
         models.PomodoroSession.task_id == task_id
     ).delete()
 
-    # Then delete the task
+    # Delete the task
     db.delete(db_task)
+    
+    # Update positions of remaining tasks
+    db.query(models.Task).filter(
+        models.Task.user_id == current_user.id,
+        models.Task.position > deleted_position
+    ).update(
+        {models.Task.position: models.Task.position - 1},
+        synchronize_session=False
+    )
+    
     db.commit()
     return {"status": "success"}
 
@@ -94,8 +121,16 @@ def update_tasks_order(
     if len(user_tasks) != len(task_order.task_ids):
         raise HTTPException(status_code=400, detail="Invalid task IDs")
     
-    # No database schema changes needed - just return success
-    # The frontend will maintain the order in localStorage
+    # Create a mapping of task IDs to their tasks
+    task_map = {task.id: task for task in user_tasks}
+    
+    # Update positions
+    for index, task_id in enumerate(task_order.task_ids):
+        task = task_map.get(task_id)
+        if task:
+            task.position = index + 1
+    
+    db.commit()
     
     # Broadcast the order change to all connected clients for this user
     asyncio.create_task(

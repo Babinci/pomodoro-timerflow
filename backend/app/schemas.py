@@ -66,6 +66,7 @@ class Task(TaskBase):
     created_at: datetime
     completed_at: Optional[datetime]
     is_active: bool
+    position: int
 
     class Config:
         from_attributes = True

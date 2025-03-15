@@ -42,6 +42,7 @@ class Task(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True)
+    position = Column(Integer, default=999999)  # Add position field with default to end
 
     user = relationship("User", back_populates="tasks")
     sessions = relationship("PomodoroSession", back_populates="task")

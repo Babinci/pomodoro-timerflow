@@ -16,10 +16,15 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
 
   // Handle WebSocket messages
   const handleWebSocketMessage = useCallback((data) => {
+    console.log('WebSocket message received in TaskList:', data);
+    
     if (data.type === 'task_order_updated') {
-      // Reorder tasks based on the received order
+      console.log('Received task_order_updated event:', data.data);
       const { task_ids } = data.data;
+      
       if (task_ids && task_ids.length > 0) {
+        console.log('Reordering tasks based on websocket data');
+        // Create mapping of task ID to order position
         const orderMap = {};
         task_ids.forEach((id, index) => {
           orderMap[id] = index;
@@ -32,6 +37,7 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
           return orderA - orderB;
         });
         
+        console.log('Ordered tasks array:', orderedTasks.map(t => t.id));
         setTasks(orderedTasks);
         // Update localStorage with the new order
         saveTaskOrder(orderedTasks);
@@ -186,6 +192,7 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
 
   // Save the current task order to localStorage
   const saveTaskOrder = (orderedTasks) => {
+    console.log('Saving task order to localStorage:', orderedTasks.map(t => t.id));
     const orderMap = {};
     orderedTasks.forEach((task, index) => {
       orderMap[task.id] = index;
@@ -195,11 +202,14 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
 
   // Handle the end of a drag operation
   const handleDragEnd = (result) => {
-    console.log('Drag result:', result); // Add debug logging
-    // Dropped outside the list
+    console.log('Drag end event triggered:', result);
+    
     if (!result.destination) {
+      console.log('No valid destination, ignoring drop');
       return;
     }
+    
+    console.log(`Moving from index ${result.source.index} to ${result.destination.index}`);
 
     // Reorder the tasks array
     const reorderedTasks = Array.from(tasks);
@@ -224,6 +234,7 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
   const updateTasksOrder = async (orderedTasks) => {
     try {
       const taskIds = orderedTasks.map(task => task.id);
+      console.log('Sending updated task order to server:', taskIds);
       
       const response = await fetch(`${apiConfig.baseUrl}/tasks/order`, {
         method: 'PUT',
@@ -235,8 +246,12 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
       });
 
       if (!response.ok) {
-        console.error('Failed to update task order on server');
+        const errorData = await response.json();
+        console.error('Server error updating task order:', errorData);
+        throw new Error('Failed to update task order');
       }
+      
+      console.log('Task order successfully updated on server');
     } catch (error) {
       console.error('Error updating task order:', error);
     }
@@ -276,10 +291,10 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="taskList">
           {(provided) => (
-            <ScrollView 
-              style={{ maxHeight: 400 }}
+            <View 
               {...provided.droppableProps}
               ref={provided.innerRef}
+              style={{ maxHeight: 400 }}
             >
               {tasks.map((task, index) => (
                 <Draggable key={task.id.toString()} draggableId={task.id.toString()} index={index}>
@@ -287,134 +302,144 @@ export default function TaskList({ token, currentTask, setCurrentTask }) {
                     <View
                       ref={provided.innerRef}
                       {...provided.draggableProps}
-                      {...provided.dragHandleProps}
                       style={[
+                        styles.taskItemWrapper,
+                        snapshot.isDragging && { zIndex: 999, opacity: 0.8 },
+                        provided.draggableProps.style
+                      ]}
+                    >
+                      <View style={[
                         styles.taskItem,
                         currentTask?.id === task.id && styles.taskItemActive,
                         isSmallScreen && { flexDirection: 'column', alignItems: 'stretch' },
                         snapshot.isDragging && { opacity: 0.7, backgroundColor: colors.backgroundLight },
-                        provided.draggableProps.style
-                      ]}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <TextInput
-                          style={[styles.input, { marginBottom: 4 }]}
-                          value={task.title}
-                          onChangeText={(text) => updateTask(task.id, { title: text })}
-                        />
-                        
-                        {/* Description Field with Edit/Save Pattern */}
-                        {editingTaskId === task.id ? (
-                          <View style={{ marginVertical: 8 }}>
-                            <TextInput
-                              style={[
-                                styles.input, 
-                                { 
-                                  minHeight: 80, 
-                                  textAlignVertical: 'top',
-                                  paddingTop: 8
-                                }
-                              ]}
-                              placeholder="Description (optional)"
-                              value={editDescription}
-                              onChangeText={setEditDescription}
-                              multiline={true}
-                              numberOfLines={4}
-                            />
-                            <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                      ]}>
+                        <View 
+                          {...provided.dragHandleProps} 
+                          style={styles.dragHandle}
+                        >
+                          <Text>≡</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <TextInput
+                            style={[styles.input, { marginBottom: 4 }]}
+                            value={task.title}
+                            onChangeText={(text) => updateTask(task.id, { title: text })}
+                          />
+                          
+                          {/* Description Field with Edit/Save Pattern */}
+                          {editingTaskId === task.id ? (
+                            <View style={{ marginVertical: 8 }}>
+                              <TextInput
+                                style={[
+                                  styles.input, 
+                                  { 
+                                    minHeight: 80, 
+                                    textAlignVertical: 'top',
+                                    paddingTop: 8
+                                  }
+                                ]}
+                                placeholder="Description (optional)"
+                                value={editDescription}
+                                onChangeText={setEditDescription}
+                                multiline={true}
+                                numberOfLines={4}
+                              />
+                              <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                                <TouchableOpacity
+                                  style={[styles.button, { backgroundColor: colors.success }]}
+                                  onPress={() => saveDescription(task.id)}
+                                >
+                                  <Text style={styles.buttonText}>Save</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={[styles.button, { backgroundColor: colors.textLight }]}
+                                  onPress={cancelEditingDescription}
+                                >
+                                  <Text style={styles.buttonText}>Cancel</Text>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          ) : (
+                            <View style={{ marginVertical: 8 }}>
                               <TouchableOpacity
-                                style={[styles.button, { backgroundColor: colors.success }]}
-                                onPress={() => saveDescription(task.id)}
+                                style={[
+                                  styles.input,
+                                  { 
+                                    minHeight: 60, 
+                                    paddingTop: 8,
+                                    paddingBottom: 8
+                                  }
+                                ]}
+                                onPress={() => startEditingDescription(task)}
                               >
-                                <Text style={styles.buttonText}>Save</Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity
-                                style={[styles.button, { backgroundColor: colors.textLight }]}
-                                onPress={cancelEditingDescription}
-                              >
-                                <Text style={styles.buttonText}>Cancel</Text>
+                                {task.description ? (
+                                  <Text style={{ color: colors.text }}>{task.description}</Text>
+                                ) : (
+                                  <Text style={{ color: colors.textLight }}>
+                                    Description (optional) - Click to edit
+                                  </Text>
+                                )}
                               </TouchableOpacity>
                             </View>
-                          </View>
-                        ) : (
-                          <View style={{ marginVertical: 8 }}>
-                            <TouchableOpacity
-                              style={[
-                                styles.input,
-                                { 
-                                  minHeight: 60, 
-                                  paddingTop: 8,
-                                  paddingBottom: 8
-                                }
-                              ]}
-                              onPress={() => startEditingDescription(task)}
-                            >
-                              {task.description ? (
-                                <Text style={{ color: colors.text }}>{task.description}</Text>
-                              ) : (
-                                <Text style={{ color: colors.textLight }}>
-                                  Description (optional) - Click to edit
-                                </Text>
-                              )}
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                        
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <Text style={styles.smallText}>
-                            {task.completed_pomodoros}/
-                          </Text>
-                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <TouchableOpacity
-                              style={[styles.button, { paddingHorizontal: 8, paddingVertical: 4 }]}
-                              onPress={() => updateTask(task.id, { 
-                                estimated_pomodoros: Math.max(1, task.estimated_pomodoros - 1)
-                              })}
-                            >
-                              <Text style={[styles.buttonText, { fontSize: 12 }]}>-</Text>
-                            </TouchableOpacity>
-                            <Text style={[styles.smallText, { marginHorizontal: 8 }]}>
-                              {task.estimated_pomodoros}
+                          )}
+                          
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Text style={styles.smallText}>
+                              {task.completed_pomodoros}/
                             </Text>
-                            <TouchableOpacity
-                              style={[styles.button, { paddingHorizontal: 8, paddingVertical: 4 }]}
-                              onPress={() => updateTask(task.id, { 
-                                estimated_pomodoros: task.estimated_pomodoros + 1
-                              })}
-                            >
-                              <Text style={[styles.buttonText, { fontSize: 12 }]}>+</Text>
-                            </TouchableOpacity>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                              <TouchableOpacity
+                                style={[styles.button, { paddingHorizontal: 8, paddingVertical: 4 }]}
+                                onPress={() => updateTask(task.id, { 
+                                  estimated_pomodoros: Math.max(1, task.estimated_pomodoros - 1)
+                                })}
+                              >
+                                <Text style={[styles.buttonText, { fontSize: 12 }]}>-</Text>
+                              </TouchableOpacity>
+                              <Text style={[styles.smallText, { marginHorizontal: 8 }]}>
+                                {task.estimated_pomodoros}
+                              </Text>
+                              <TouchableOpacity
+                                style={[styles.button, { paddingHorizontal: 8, paddingVertical: 4 }]}
+                                onPress={() => updateTask(task.id, { 
+                                  estimated_pomodoros: task.estimated_pomodoros + 1
+                                })}
+                              >
+                                <Text style={[styles.buttonText, { fontSize: 12 }]}>+</Text>
+                              </TouchableOpacity>
+                            </View>
+                            <Text style={styles.smallText}> Pomodoros</Text>
                           </View>
-                          <Text style={styles.smallText}> Pomodoros</Text>
                         </View>
-                      </View>
-                      <View style={[
-                        { flexDirection: 'row', gap: 8 },
-                        isSmallScreen && { marginTop: 12, justifyContent: 'flex-end' }
-                      ]}>
-                        <TouchableOpacity
-                          style={[styles.button, { paddingHorizontal: 16, paddingVertical: 8 }]}
-                          onPress={() => setCurrentTask(task)}
-                        >
-                          <Text style={styles.buttonText}>Select</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.button, { 
-                            paddingHorizontal: 16, 
-                            paddingVertical: 8,
-                            backgroundColor: colors.danger 
-                          }]}
-                          onPress={() => deleteTask(task.id)}
-                        >
-                          <Text style={styles.buttonText}>Delete</Text>
-                        </TouchableOpacity>
+                        <View style={[
+                          { flexDirection: 'row', gap: 8 },
+                          isSmallScreen && { marginTop: 12, justifyContent: 'flex-end' }
+                        ]}>
+                          <TouchableOpacity
+                            style={[styles.button, { paddingHorizontal: 16, paddingVertical: 8 }]}
+                            onPress={() => setCurrentTask(task)}
+                          >
+                            <Text style={styles.buttonText}>Select</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.button, { 
+                              paddingHorizontal: 16, 
+                              paddingVertical: 8,
+                              backgroundColor: colors.danger 
+                            }]}
+                            onPress={() => deleteTask(task.id)}
+                          >
+                            <Text style={styles.buttonText}>Delete</Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     </View>
                   )}
                 </Draggable>
               ))}
               {provided.placeholder}
-            </ScrollView>
+            </View>
           )}
         </Droppable>
       </DragDropContext>
