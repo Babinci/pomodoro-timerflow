@@ -1,5 +1,6 @@
 
-#Project information
+# Project information
+
 - Relevant project information is in memory-bank directory
 - understanding deployment and docker- Dockerfile and restart_docker.sh
 
@@ -25,10 +26,6 @@
 - DO NOT write complicated and confusing code. Opt for the simple & modular approach.
 - When not sure what to do, tell the user to perform a web search
 
-
-
-
-
 # Thinking patterns
 When you create implementation plan- make it very specific and precise- with numbered steps and very precise description what to change and why
 
@@ -40,3 +37,68 @@ When you create implementation plan- make it very specific and precise- with num
 - if you are unsure about solution, ask a question for clarification
 
 think step by step, but only keep a minimum draft for each thinking step, with 5 words ar most. Return the answer at the end of the response after a separator ####
+
+
+
+
+## Memory Bank Structure
+
+The Memory Bank consists of required core files and optional context files, all in Markdown format. Files build upon each other in a clear hierarchy:
+
+```mermaid
+flowchart TD
+    PB[projectbrief.md] --> PC[productContext.md]
+    PB --> SP[systemPatterns.md]
+    PB --> TC[techContext.md]
+    
+    PC --> AC[activeContext.md]
+    SP --> AC
+    TC --> AC
+    
+    AC --> P[progress.md]
+```
+
+### Core Files (Required)
+1. `projectbrief.md`
+   - Foundation document that shapes all other files
+   - Created at project start if it doesn't exist
+   - Defines core requirements and goals
+   - Source of truth for project scope
+
+2. `productContext.md`
+   - Why this project exists
+   - Problems it solves
+   - How it should work
+   - User experience goals
+
+3. `activeContext.md`
+   - Current work focus
+   - Recent changes
+   - Next steps
+   - Active decisions and considerations
+
+4. `systemPatterns.md`
+   - System architecture
+   - Key technical decisions
+   - Design patterns in use
+   - Component relationships
+
+5. `techContext.md`
+   - Technologies used
+   - Development setup
+   - Technical constraints
+   - Dependencies
+
+6. `progress.md`
+   - What works
+   - What's left to build
+   - Current status
+   - Known issues
+
+### Additional Context
+Create additional files/folders within memory-bank/ when they help organize:
+- Complex feature documentation
+- Integration specifications
+- API documentation
+- Testing strategies
+- Deployment procedures
