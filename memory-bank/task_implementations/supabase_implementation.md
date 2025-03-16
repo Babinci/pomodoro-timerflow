@@ -50,3 +50,11 @@ Once set up, you can initialize a new Supabase project, start the local stack, a
 tried cli
 (venv) wojtek@wojtek-Latitude-E6420:~/It_Projects/pomodoro-timerflow$ npx supabase help
 Supabase CLI 2.19.7
+
+
+status: https://supabase.cypher-arena.com/ working, as well as locally  curl http://localhost:54323
+
+
+will use this:
+
+https://github.com/supabase/supabase-py
