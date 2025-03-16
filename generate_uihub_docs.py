@@ -203,7 +203,7 @@ folders_to_choose = [
     "memory-bank",
 ]
 files_to_choose = ["Dockerfile", "restart_docker.sh"]
-exclude_dirs = []  # Folders to exclude
+exclude_dirs = ['memory-bank/task_implementations/drafts']  # Folders to exclude
 git_bearer = git_token
 llm_context_file = "prompts/llm_context.md"
 

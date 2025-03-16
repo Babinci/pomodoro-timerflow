@@ -62,3 +62,12 @@ https://github.com/supabase/supabase-py
 
 next steps:
 - i need to create database for project, handle migrations/ connect mcp server
+
+
+
+
+status: done
+
+
+
+
