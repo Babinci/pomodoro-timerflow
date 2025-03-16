@@ -20,3 +20,6 @@ The aim is to have a tool for my life that maximizes effective work with clever 
 CVisual graphs with different colors for different types of tasks to plan different activities like singing and programming, to be able to not be exhausted by doing different types of activities.
 *   **Automate** Clever integration of all possible open source mcp servers and existing agents with agentic rag of intents- clever multi vector embeddings of mcp servers with system that is learning the user. The goal and mission is to give time to the human with relatively low for his life cost, but still being a great gift. The system would be interactive with user and  would look for best tools for user to automate his jobs.
 
+
+## Challenges
+- ocean of task management, productivity apps
