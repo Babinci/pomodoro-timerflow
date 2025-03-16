@@ -58,3 +58,7 @@ status: https://supabase.cypher-arena.com/ working, as well as locally  curl htt
 will use this:
 
 https://github.com/supabase/supabase-py
+
+
+next steps:
+- i need to create database for project, handle migrations/ connect mcp server
