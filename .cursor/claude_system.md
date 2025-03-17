@@ -51,7 +51,7 @@ flowchart TD
    - Technical constraints
    - Dependencies
 
-6. `progress.md`
+6. `progress.md`ni
    - What works
    - What's left to build
    - Current status

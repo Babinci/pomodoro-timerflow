@@ -1,0 +1,7 @@
+{
+    "mcpServers": {
+        "supabase": {
+            "command": "/home/wojtek/It_Projects/pomodoro-timerflow/backend/venv/bin/supabase-mcp-server"
+        }
+    }
+}
