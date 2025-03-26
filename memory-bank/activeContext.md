@@ -41,6 +41,10 @@
     - Remaining time
     - Round number
     - Preset type
+- **Venv Credentials Handling:**
+  - Currently using environment variables for credentials
+  - Need to implement secure credential storage solution
+  - Todo: Research and implement proper credential management
 - **Checkpoint States:** Decided on 10 state types with essential metadata (details in checkpoint_states.md)
 - **Drag-and-Drop Approach:** Using `react-beautiful-dnd` over alternatives
 - **Wear OS Priority:** Focus on core timer before expanding features
