@@ -7,14 +7,15 @@ COPY frontend-apps/web-app/ ./
 ENV NODE_ENV=production
 RUN npm run build
 
-# Stage 2: Set up the FastAPI backend
+# Stage 2: Set up the FastAPI backend with Supabase
 FROM python:3.9-slim
 WORKDIR /app
-COPY backend/requirements.txt ./
+COPY backend/requirements_supabase.txt ./requirements.txt
 RUN pip install -r requirements.txt
 COPY backend/ ./
-RUN mkdir -p /app/db
+RUN mkdir -p /app/logs
 COPY --from=frontend-build /app/build ./app/frontend-build
 
 EXPOSE 8003
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8003"]
+# Use the clean version of the application
+CMD ["uvicorn", "app.main_clean:app", "--host", "0.0.0.0", "--port", "8003"]

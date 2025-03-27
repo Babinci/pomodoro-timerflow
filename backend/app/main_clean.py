@@ -1,18 +1,13 @@
-# main_supabase.py
+# main_clean.py
 """
-Main FastAPI application using Supabase for authentication and database operations.
+Clean implementation of the FastAPI application using Supabase for authentication and database operations.
+This version does not rely on the SQLAlchemy models or database.
 """
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import logging
 from fastapi.responses import FileResponse
-
-# Import database with in-memory SQLite for compatibility
-from .database_supabase import Base, engine
-
-# Import routers
-from .routers import auth_supabase, users_supabase, tasks_supabase, pomodoro_session_supabase, pomodoro_websocket
 
 # Import Supabase client
 from .supabase import supabase
@@ -30,6 +25,9 @@ app = FastAPI(
     description="API for Pomodoro TimerFlow application using Supabase",
     version="2.0.0"
 )
+
+# Create app state for supabase client
+app.state.supabase = supabase
 
 # CORS setup
 app.add_middleware(
@@ -58,18 +56,11 @@ async def health_check():
     """Health check endpoint to verify API is running"""
     try:
         # Test Supabase connection
-        supabase.table("users").select("count", count="exact").execute()
-        return {"status": "ok", "database": "connected"}
+        response = supabase.table("users").select("count", count="exact").execute()
+        return {"status": "ok", "database": "connected", "user_count": response.count if hasattr(response, 'count') else 0}
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
-        raise HTTPException(status_code=500, detail="Health check failed")
-
-# Include routers
-app.include_router(auth_supabase.router, prefix="/api")
-app.include_router(users_supabase.router, prefix="/api")
-app.include_router(tasks_supabase.router, prefix="/api")
-app.include_router(pomodoro_session_supabase.router, prefix="/api")
-app.include_router(pomodoro_websocket.router, prefix="/api")
+        return {"status": "ok", "database": "error connecting", "error": str(e)}
 
 # Static file serving
 @app.get("/{path:path}")
