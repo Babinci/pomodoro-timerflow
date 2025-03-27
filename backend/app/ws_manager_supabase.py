@@ -3,7 +3,6 @@ from fastapi import WebSocket
 from typing import Dict, Set, Optional
 from datetime import datetime, timezone
 import json
-from sqlalchemy.orm import Session
 import logging
 
 # Create a logger

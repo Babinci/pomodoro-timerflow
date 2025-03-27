@@ -25,22 +25,63 @@ class UserData(BaseModel):
     user_metadata: Dict[str, Any]
 
 async def authenticate_user(email: str, password: str):
-    """Authenticate a user with Supabase Auth"""
+    """Authenticate a user with custom authentication"""
     try:
-        response = supabase.auth.sign_in_with_password({
-            "email": email,
-            "password": password
-        })
-        if response.user:
-            return response
-        return None
+        # Get the user from the database
+        response = supabase.table("users").select("*").eq("email", email).limit(1).execute()
+        
+        if not response.data or len(response.data) == 0:
+            return None
+            
+        user = response.data[0]
+        
+        # Verify the password
+        from passlib.context import CryptContext
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        
+        if not pwd_context.verify(password, user["hashed_password"]):
+            return None
+            
+        # Create a custom response object
+        from types import SimpleNamespace
+        
+        # Create token for the user
+        from datetime import datetime, timedelta
+        import jwt
+        
+        # Use a secure secret key (should be in environment variables)
+        SECRET_KEY = "your-secret-key"  # In production, use env variable
+        ALGORITHM = "HS256"
+        
+        # Create JWT token
+        token_data = {"sub": email, "exp": datetime.utcnow() + timedelta(minutes=30)}
+        access_token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
+        
+        # Create a session object
+        session = SimpleNamespace()
+        session.access_token = access_token
+        session.refresh_token = None
+        session.expires_at = (datetime.utcnow() + timedelta(minutes=30)).isoformat()
+        
+        # Create a user object
+        user_obj = SimpleNamespace()
+        user_obj.id = user["id"]
+        user_obj.email = user["email"]
+        user_obj.user_metadata = {"username": user["username"]}
+        
+        # Create a response object
+        auth_response = SimpleNamespace()
+        auth_response.user = user_obj
+        auth_response.session = session
+        
+        return auth_response
     except Exception as e:
         # Log the error
         print(f"Authentication error: {str(e)}")
         return None
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
-    """Get the current user from a JWT token using Supabase Auth"""
+    """Get the current user from a JWT token"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -48,42 +89,68 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     )
     
     try:
-        # Set the session with the provided token
-        response = supabase.auth.set_session(token, None)
-        user = response.user
+        # Verify the token and get the user data
+        user_data = await verify_token(token)
         
-        if not user:
+        # Get the full user data from the database
+        response = supabase.table("users").select("*").eq("id", user_data["user_id"]).limit(1).execute()
+        
+        if not response.data or len(response.data) == 0:
             raise credentials_exception
             
-        # Get the full user data
-        user_response = supabase.auth.get_user(token)
+        user = response.data[0]
         
         # Create a user data object
-        user_data = UserData(
-            id=user.id,
-            email=user.email,
-            user_metadata=user.user_metadata
+        user_obj = UserData(
+            id=user["id"],
+            email=user["email"],
+            user_metadata={"username": user["username"]}
         )
         
-        return user_data
+        return user_obj
+    except HTTPException:
+        raise
     except Exception as e:
         # Log the error
         print(f"Token validation error: {str(e)}")
         raise credentials_exception
 
 async def verify_token(token: str) -> Dict[str, Any]:
-    """Verify a JWT token using Supabase Auth"""
+    """Verify a JWT token"""
     try:
-        # Use get_user to verify the token
-        response = supabase.auth.get_user(token)
-        if response.user:
-            return {
-                "user_id": response.user.id,
-                "email": response.user.email
-            }
+        # Decode the JWT token
+        import jwt
+        
+        # Use a secure secret key (should be in environment variables)
+        SECRET_KEY = "your-secret-key"  # In production, use env variable
+        ALGORITHM = "HS256"
+        
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+        
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token - missing email"
+            )
+            
+        # Get the user from the database
+        response = supabase.table("users").select("id").eq("email", email).limit(1).execute()
+        
+        if not response.data or len(response.data) == 0:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found"
+            )
+            
+        return {
+            "user_id": response.data[0]["id"],
+            "email": email
+        }
+    except jwt.PyJWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
+            detail=f"Invalid token: {str(e)}"
         )
     except Exception as e:
         raise HTTPException(
@@ -103,28 +170,8 @@ async def get_user_from_db(user_id: str):
         return None
 
 async def create_user(email: str, password: str, username: str):
-    """Create a new user with Supabase Auth and add to database"""
+    """Create a new user directly in the database"""
     try:
-        # First, create the auth user
-        auth_response = supabase.auth.sign_up({
-            "email": email,
-            "password": password,
-            "options": {
-                "data": {
-                    "username": username
-                }
-            }
-        })
-        
-        if not auth_response.user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to create user"
-            )
-        
-        # Then add the user to our database table
-        user_id = auth_response.user.id
-        
         # Define default pomodoro settings
         default_settings = {
             "short": {
@@ -141,15 +188,26 @@ async def create_user(email: str, password: str, username: str):
             }
         }
         
-        # Insert into our users table
+        # Hash the password
+        from passlib.context import CryptContext
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        hashed_password = pwd_context.hash(password)
+        
+        # Insert into users table
         db_response = supabase.table("users").insert({
-            "id": user_id,
             "email": email,
             "username": username,
+            "hashed_password": hashed_password,
             "pomodoro_settings": default_settings
         }).execute()
         
-        return auth_response.user
+        if not db_response.data or len(db_response.data) == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to create user"
+            )
+            
+        return db_response.data[0]
         
     except Exception as e:
         print(f"User creation error: {str(e)}")

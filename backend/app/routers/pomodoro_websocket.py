@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, Query
-from sqlalchemy.orm import Session
 import logging
 from .. import auth_supabase
 from ..ws_manager_supabase import manager

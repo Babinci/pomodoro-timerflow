@@ -17,5 +17,5 @@ RUN mkdir -p /app/logs
 COPY --from=frontend-build /app/build ./app/frontend-build
 
 EXPOSE 8003
-# Use the clean version of the application
-CMD ["uvicorn", "app.main_clean:app", "--host", "0.0.0.0", "--port", "8003"]
+# Use the full Supabase implementation
+CMD ["uvicorn", "app.main_supabase:app", "--host", "0.0.0.0", "--port", "8003"]

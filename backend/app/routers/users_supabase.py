@@ -7,6 +7,7 @@ from ..supabase import supabase
 router = APIRouter(prefix="/users", tags=["users"])
 
 @router.post("/", response_model=schemas.User)
+@router.post("", response_model=schemas.User)  # Add this route to handle requests without trailing slash
 async def register_user(user: schemas.UserCreate):
     """Create a new user account"""
     try:

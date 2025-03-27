@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from .. import schemas
 from ..auth_supabase import authenticate_user, get_current_user, verify_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from ..supabase import supabase
 
 router = APIRouter(tags=["authentication"])
 
@@ -37,17 +38,16 @@ async def login_for_access_token(
 
 @router.post("/refresh-token")
 async def refresh_access_token(refresh_token: str):
-    """Refresh an expired access token using a refresh token"""
+    """Refresh an expired access token"""
     try:
-        response = supabase.auth.refresh_session(refresh_token)
-        session = response.session
-        
-        return {
-            "access_token": session.access_token,
-            "token_type": "bearer",
-            "refresh_token": session.refresh_token,
-            "expires_at": session.expires_at
-        }
+        # For now, we don't have refresh tokens implemented
+        # In a production environment, you would validate the refresh token
+        # and issue a new access token
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Token refresh not implemented in this version",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

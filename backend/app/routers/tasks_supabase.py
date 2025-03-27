@@ -6,7 +6,7 @@ from datetime import datetime
 from .. import schemas
 from ..auth_supabase import get_current_user
 from ..supabase import supabase
-from ..ws_manager import manager
+from ..ws_manager_supabase import manager
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
