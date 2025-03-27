@@ -55,6 +55,7 @@
 -   Timer connection bugs resolved (testing phase)
 -   Drag-and-drop implementation complete (needs debugging)
 -   Wear OS app setup in progress (Android Studio configuration)
+-   **HIGH PRIORITY: Tidy up Supabase documentation and divide it into smaller, more manageable parts.**
 -   **Supabase documentation has been reorganized with a table of contents and links to specific documentation files for improved organization and reduced redundancy.**
 
 ## Known Issues & Solutions

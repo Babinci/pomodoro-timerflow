@@ -25,7 +25,7 @@
 -   Added `react-beautiful-dnd` for task reordering
 -   Created backend `/tasks/order` endpoint
 -   WebSocket integration for real-time task updates
--   **Updated Supabase documentation with a table of contents and links to specific documentation files for improved organization and reduced redundancy.**
+-   **HIGH PRIORITY: Tidy up Supabase documentation and divide it into smaller, more manageable parts.**
 
 ## Next Steps
 
