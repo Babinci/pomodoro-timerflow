@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 
 app = FirecrawlApp(api_key=API_KEY)
-output_folder = r"C:\Users\walko\IT_projects\pomodoro-timerflow\documents\supabase_docs"
+output_folder = r"C:\Users\walko\IT_projects\pomodoro-timerflow\documents\supabase_docs_cleaned"
 
 # Create the output folder if it doesn't exist
 Path(output_folder).mkdir(parents=True, exist_ok=True)
@@ -32,7 +32,7 @@ crawl_result = app.crawl_url(
     params={
         'limit': 500,
         'scrapeOptions': {'formats': ['markdown']},
-        # 'includePaths': ['^/docs/reference/python/'] 
+        'includePaths': ['^/docs/reference/python/'] 
     },
     poll_interval=30
 )

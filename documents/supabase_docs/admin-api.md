@@ -1,1093 +1,803 @@
-Python Reference v2.0
-
-# Python Client Library
-
-supabase-py [View on GitHub](https://github.com/supabase/supabase-py)
-
-This reference documents every object and method available in Supabase's Python library, [supabase-py](https://github.com/supabase/supabase-py). You can use supabase-py to interact with your Postgres database, listen to database changes, invoke Deno Edge Functions, build login and user management functionality, and manage large files.
-
-* * *
-
-## Installing
-
-### Install with PyPi [\#](https://supabase.com/docs/reference/python/admin-api\#install-with-pypi)
-
-You can install supabase-py via the terminal. (for Python > 3.8)
-
-PIPConda
-
-```flex
-
-1
-pip install supabase
-```
-
-* * *
-
-## Initializing
-
-You can initialize a new Supabase client using the `create_client()` method.
-
-The Supabase client is your entrypoint to the rest of the Supabase functionality and is the easiest way to interact with everything we offer within the Supabase ecosystem.
-
-### Parameters
-
-- supabase\_urlRequiredstring
-
-
-
-The unique Supabase URL which is supplied when you create a new project in your project dashboard.
-
-- supabase\_keyRequiredstring
-
-
-
-The unique Supabase Key which is supplied when you create a new project in your project dashboard.
-
-- optionsOptionalClientOptions
-
-
-
-Options to change the Auth behaviors.
-
-
-
-Details
-
-
-create\_client()With timeout option
-
-```flex
-
-1
-2
-3
-4
-5
-6
-import osfrom supabase import create_client, Clienturl: str = os.environ.get("SUPABASE_URL")key: str = os.environ.get("SUPABASE_KEY")supabase: Client = create_client(url, key)
-```
-
-* * *
-
-## Fetch data
-
-- By default, Supabase projects return a maximum of 1,000 rows. This setting can be changed in your project's [API settings](https://supabase.com/dashboard/project/_/settings/api). It's recommended that you keep it low to limit the payload size of accidental or malicious requests. You can use `range()` queries to paginate through your data.
-- `select()` can be combined with [Filters](https://supabase.com/docs/reference/python/using-filters)
-- `select()` can be combined with [Modifiers](https://supabase.com/docs/reference/python/using-modifiers)
-- `apikey` is a reserved keyword if you're using the [Supabase Platform](https://supabase.com/docs/guides/platform) and [should be avoided as a column name](https://github.com/supabase/supabase/issues/5465).
-
-### Parameters
-
-- columnsOptionalstring
-
-
-
-The columns to retrieve, defaults to `*`.
-
-- countOptionalCountMethod
-
-
-
-The property to use to get the count of rows returned.
-
-
-Getting your dataSelecting specific columnsQuery referenced tablesQuery referenced tables through a join tableQuery the same referenced table multiple timesFiltering through referenced tablesQuerying referenced table with countQuerying with count optionQuerying JSON dataQuerying referenced table with inner joinSwitching schemas per query
-
-```flex
-
-1
-2
-3
-4
-5
-response = (    supabase.table("planets")    .select("*")    .execute())
-```
-
-Data source
-
-Response
-
-* * *
-
-## Insert data
-
-### Parameters
-
-- jsonRequireddict, list
-
-
-
-The values to insert. Pass an dict to insert a single row or an list to insert multiple rows.
-
-- countOptionalCountMethod
-
-
-
-The property to use to get the count of rows returned.
-
-- returningOptionalReturnMethod
-
-
-
-Either 'minimal' or 'representation'. Defaults to 'representation'.
-
-- default\_to\_nullOptionalbool
-
-
-
-Make missing fields default to `null`. Otherwise, use the default value for the column. Only applies for bulk inserts.
-
-
-Create a recordBulk create
-
-```flex
-
-1
-2
-3
-4
-5
-response = (    supabase.table("planets")    .insert({"id": 1, "name": "Pluto"})    .execute())
-```
-
-Data source
-
-Response
-
-* * *
-
-## Update data
-
-- `update()` should always be combined with [Filters](https://supabase.com/docs/reference/python/using-filters) to target the item(s) you wish to update.
-
-### Parameters
-
-- jsonRequireddict, list
-
-
-
-The values to insert. Pass an dict to insert a single row or an list to insert multiple rows.
-
-- countOptionalCountMethod
-
-
-
-The property to use to get the count of rows returned.
-
-
-Updating your dataUpdating JSON data
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("instruments")    .update({"name": "piano"})    .eq("id", 1)    .execute())
-```
-
-Data source
-
-Response
-
-* * *
-
-## Upsert data
-
-- Primary keys must be included in the `values` dict to use upsert.
-
-### Parameters
-
-- jsonRequireddict, list
-
-
-
-The values to insert. Pass an dict to insert a single row or an list to insert multiple rows.
-
-- countOptionalCountMethod
-
-
-
-The property to use to get the count of rows returned.
-
-- returningOptionalReturnMethod
-
-
-
-Either 'minimal' or 'representation'. Defaults to 'representation'.
-
-- ignore\_duplicatesOptionalbool
-
-
-
-Whether duplicate rows should be ignored.
-
-- on\_conflictOptionalstring
-
-
-
-Specified columns to be made to work with UNIQUE constraint.
-
-- default\_to\_nullOptionalbool
-
-
-
-Make missing fields default to `null`. Otherwise, use the default value for the column. Only applies for bulk inserts.
-
-
-Upsert your dataBulk Upsert your dataUpserting into tables with constraints
-
-```flex
-
-1
-2
-3
-4
-5
-response = (    supabase.table("instruments")    .upsert({"id": 1, "name": "piano"})    .execute())
-```
-
-Data source
-
-Response
-
-* * *
-
-## Delete data
-
-- `delete()` should always be combined with [filters](https://supabase.com/docs/reference/python/using-filters) to target the item(s) you wish to delete.
-- If you use `delete()` with filters and you have [RLS](https://supabase.com/docs/learn/auth-deep-dive/auth-row-level-security) enabled, only rows visible through `SELECT` policies are deleted. Note that by default no rows are visible, so you need at least one `SELECT`/ `ALL` policy that makes the rows visible.
-- When using `delete().in_()`, specify an array of values to target multiple rows with a single query. This is particularly useful for batch deleting entries that share common criteria, such as deleting users by their IDs. Ensure that the array you provide accurately represents all records you intend to delete to avoid unintended data removal.
-
-### Parameters
-
-- countOptionalCountMethod
-
-
-
-The property to use to get the count of rows returned.
-
-- returningOptionalReturnMethod
-
-
-
-Either 'minimal' or 'representation'. Defaults to 'representation'.
-
-
-Delete recordsDelete multiple records
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("countries")    .delete()    .eq("id", 1)    .execute())
-```
-
-Data source
-
-Response
-
-* * *
-
-## Call a Postgres function
-
-You can call Postgres functions as _Remote Procedure Calls_, logic in your database that you can execute from anywhere. Functions are useful when the logic rarely changes—like for password resets and updates.
-
-```flex
-
-1
-2
-3
-create or replace function hello_world() returns text as $$  select 'Hello world';$$ language sql;
-```
-
-### Parameters
-
-- fnRequiredcallable
-
-
-
-The stored procedure call to be executed.
-
-- paramsOptionaldict of any
-
-
-
-Parameters passed into the stored procedure call.
-
-- getOptionaldict of any
-
-
-
-When set to `true`, `data` will not be returned. Useful if you only need the count.
-
-- headOptionaldict of any
-
-
-
-When set to `true`, the function will be called with read-only access mode.
-
-- countOptionalCountMethod
-
-
-
-Count algorithm to use to count rows returned by the function. Only applicable for [set-returning functions](https://www.postgresql.org/docs/current/functions-srf.html). `"exact"`: Exact but slow count algorithm. Performs a `COUNT(*)` under the hood. `"planned"`: Approximated but fast count algorithm. Uses the Postgres statistics under the hood. `"estimated"`: Uses exact count for low numbers and planned count for high numbers.
-
-
-Call a Postgres function without argumentsCall a Postgres function with argumentsBulk processingCall a Postgres function with filtersCall a read-only Postgres function
-
-```flex
-
-1
-2
-3
-4
-response = (    supabase.rpc("hello_world")    .execute())
-```
-
-Data source
-
-Response
-
-* * *
-
-## Using filters
-
-Filters allow you to only return rows that match certain conditions.
-
-Filters can be used on `select()`, `update()`, `upsert()`, and `delete()` queries.
-
-If a Postgres function returns a table response, you can also apply filters.
-
-Applying FiltersChainingConditional chainingFilter by values within JSON columnFilter Foreign Tables
-
-```flex
-
-1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-11
-12
-13
-14
-15
-# Correctresponse = (    supabase.table("instruments")    .select("name, section_id")    .eq("name", "flute")    .execute())# Incorrectresponse = (    supabase.table("instruments")    .eq("name", "flute")    .select("name, section_id")    .execute())
-```
-
-Data source
-
-Notes
-
-* * *
-
-## Column is equal to a value
-
-Match only rows where `column` is equal to `value`.
-
-### Parameters
-
-- columnRequiredstring
-
-
-
-The column to filter on
-
-- valueRequiredany
-
-
-
-The value to filter by
-
-
-With \`select()\`
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("planets")    .select("*")    .eq("name", "Earth")    .execute())
-```
-
-Data source
-
-Response
-
-* * *
-
-## Column is not equal to a value
-
-Match only rows where `column` is not equal to `value`.
-
-### Parameters
-
-- columnRequiredstring
-
-
-
-The column to filter on
-
-- valueRequiredany
-
-
-
-The value to filter by
-
-
-With \`select()\`
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("planets")    .select("*")    .neq("name", "Earth")    .execute())
-```
-
-Data source
-
-Response
-
-* * *
-
-## Column is greater than a value
-
-Match only rows where `column` is greather than `value`.
-
-### Parameters
-
-- columnRequiredstring
-
-
-
-The column to filter on
-
-- valueRequiredany
-
-
-
-The value to filter by
-
-
-With \`select()\`
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("planets")    .select("*")    .gt("id", 2)    .execute())
-```
-
-Data source
-
-Response
-
-Notes
-
-* * *
-
-## Column is greater than or equal to a value
-
-Match only rows where `column` is greater than or equal to `value`.
-
-### Parameters
-
-- columnRequiredstring
-
-
-
-The column to filter on
-
-- valueRequiredany
-
-
-
-The value to filter by
-
-
-With \`select()\`
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("planets")    .select("*")    .gte("id", 2)    .execute())
-```
-
-Data source
-
-Response
-
-* * *
-
-## Column is less than a value
-
-Match only rows where `column` is less than `value`.
-
-### Parameters
-
-- columnRequiredstring
-
-
-
-The column to filter on
-
-- valueRequiredany
-
-
-
-The value to filter by
-
-
-With \`select()\`
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("planets")    .select("*")    .lt("id", 2)    .execute())
-```
-
-Data source
-
-Response
-
-* * *
-
-## Column is less than or equal to a value
-
-Match only rows where `column` is less than or equal to `value`.
-
-### Parameters
-
-- columnRequiredstring
-
-
-
-The column to filter on
-
-- valueRequiredany
-
-
-
-The value to filter by
-
-
-With \`select()\`
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("planets")    .select("*")    .lte("id", 2)    .execute())
-```
-
-Data source
-
-Response
-
-* * *
-
-## Column matches a pattern
-
-Match only rows where `column` matches `pattern` case-sensitively.
-
-### Parameters
-
-- columnRequiredstring
-
-
-
-The name of the column to apply a filter on
-
-- patternRequiredstring
-
-
-
-The pattern to match by
-
-
-With \`select()\`
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("planets")    .select("*")    .like("name", "%Ea%")    .execute())
-```
-
-Data source
-
-Response
-
-* * *
-
-## Column matches a case-insensitive pattern
-
-Match only rows where `column` matches `pattern` case-insensitively.
-
-### Parameters
-
-- columnRequiredstring
-
-
-
-The name of the column to apply a filter on
-
-- patternRequiredstring
-
-
-
-The pattern to match by
-
-
-With \`select()\`
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("planets")    .select("*")    .ilike("name", "%ea%")    .execute())
-```
-
-Data source
-
-Response
-
-* * *
-
-## Column is a value
-
-Match only rows where `column` IS `value`.
-
-### Parameters
-
-- columnRequiredstring
-
-
-
-The name of the column to apply a filter on
-
-- valueRequirednull \| boolean
-
-
-
-The value to match by
-
-
-Checking for nullness, True or False
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("planets")    .select("*")    .is_("name", "null")    .execute())
-```
-
-Data source
-
-Response
-
-Notes
-
-* * *
-
-## Column is in an array
-
-Match only rows where `column` is included in the `values` array.
-
-### Parameters
-
-- columnRequiredstring
-
-
-
-The column to filter on
-
-- valuesRequiredarray
-
-
-
-The values to filter by
-
-
-With \`select()\`
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("planets")    .select("*")    .in_("name", ["Earth", "Mars"])    .execute())
-```
-
-Data source
-
-Response
-
-* * *
-
-## Column contains every element in a value
-
-Only relevant for jsonb, array, and range columns. Match only rows where `column` contains every element appearing in `value`.
-
-### Parameters
-
-- columnRequiredstring
-
-
-
-The column to filter on
-
-- valuesRequiredobject
-
-
-
-The jsonb, array, or range value to filter with
-
-
-On array columnsOn range columnsOn \`jsonb\` columns
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("issues")    .select("*")    .contains("tags", ["is:open", "priority:low"])    .execute())
-```
-
-Data source
-
-Response
-
-* * *
-
-## Contained by value
-
-Only relevant for jsonb, array, and range columns. Match only rows where every element appearing in `column` is contained by `value`.
-
-### Parameters
-
-- columnRequiredstring
-
-
-
-The jsonb, array, or range column to filter on
-
-- valueRequiredobject
-
-
-
-The jsonb, array, or range value to filter with
-
-
-On array columnsOn range columnsOn \`jsonb\` columns
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("classes")    .select("name")    .contained_by("days", ["monday", "tuesday", "wednesday", "friday"])    .execute())
-```
-
-Data source
-
-Response
-
-* * *
-
-## Greater than a range
-
-Only relevant for range columns. Match only rows where every element in `column` is greater than any element in `range`.
-
-### Parameters
-
-- columnRequiredstring
-
-
-
-The range column to filter on
-
-- rangeRequiredarray
-
-
-
-The range to filter with
-
-
-With \`select()\`
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("reservations")    .select("*")    .range_gt("during", ["2000-01-02 08:00", "2000-01-02 09:00"])    .execute())
-```
-
-Data source
-
-Response
-
-Notes
-
-* * *
-
-## Greater than or equal to a range
-
-Only relevant for range columns. Match only rows where every element in `column` is either contained in `range` or greater than any element in `range`.
-
-### Parameters
-
-- columnRequiredstring
-
-
-
-The range column to filter on
-
-- rangeRequiredstring
-
-
-
-The range to filter with
-
-
-With \`select()\`
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("reservations")    .select("*")    .range_gte("during", ["2000-01-02 08:30", "2000-01-02 09:30"])    .execute())
-```
-
-Data source
-
-Response
-
-Notes
-
-* * *
-
-## Less than a range
-
-Only relevant for range columns. Match only rows where every element in `column` is less than any element in `range`.
-
-### Parameters
-
-- columnRequiredstring
-
-
-
-The range column to filter on
-
-- rangeRequiredarray
-
-
-
-The range to filter with
-
-
-With \`select()\`
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("reservations")    .select("*")    .range_lt("during", ["2000-01-01 15:00", "2000-01-01 16:00"])    .execute())
-```
-
-Data source
-
-Response
-
-Notes
-
-* * *
-
-## Less than or equal to a range
-
-Only relevant for range columns. Match only rows where every element in `column` is less than any element in `range`.
-
-### Parameters
-
-- columnRequiredstring
-
-
-
-The range column to filter on
-
-- rangeRequiredarray
-
-
-
-The range to filter with
-
-
-With \`select()\`
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("reservations")    .select("*")    .range_lte("during", ["2000-01-01 14:00", "2000-01-01 16:00"])    .execute())
-```
-
-Data source
-
-Response
-
-Notes
-
-* * *
-
-## Mutually exclusive to a range
-
-Only relevant for range columns. Match only rows where `column` is mutually exclusive to `range` and there can be no element between the two ranges.
-
-### Parameters
-
-- columnRequiredstring
-
-
-
-The range column to filter on
-
-- rangeRequiredarray
-
-
-
-The range to filter with
-
-
-With \`select()\`
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("reservations")    .select("*")    .range_adjacent("during", ["2000-01-01 12:00", "2000-01-01 13:00"])    .execute())
-```
-
-Data source
-
-Response
-
-Notes
-
-* * *
-
-## With a common element
-
-Only relevant for array and range columns. Match only rows where `column` and `value` have an element in common.
-
-### Parameters
-
-- columnRequiredstring
-
-
-
-The array or range column to filter on
-
-- valueRequiredIterable\[Any\]
-
-
-
-The array or range value to filter with
-
-
-On array columnsOn range columns
-
-```flex
-
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("issues")    .select("title")    .overlaps("tags", ["is:closed", "severity:high"])    .execute())
-```
-
-Data source
-
+1 | Python Reference v2.0
+   2 | 
+   3 | # Python Client Library
+   4 | 
+   5 | supabase-py [View on GitHub](https://github.com/supabase/supabase-py)
+   6 | 
+   7 | This reference documents every object and method available in Supabase's Python library, [supabase-py](https://github.com/supabase/supabase-py). You can use supabase-py to interact with your Postgres database, listen to database changes, invoke Deno Edge Functions, build login and user management functionality, and manage large files.
+   8 | 
+   9 | * * *
+  10 | 
+  11 | ## Installing
+  12 | 
+  13 | ### Install with PyPi [\#](https://supabase.com/docs/reference/python/admin-api\#install-with-pypi)
+  14 | 
+  15 | You can install supabase-py via the terminal. (for Python > 3.8)
+  16 | 
+  17 | PIPConda
+  18 | 
+  19 | ```python
+  20 | 
+  21 | pip install supabase
+  22 | ```
+  23 | 
+  24 | * * *
+  25 | 
+  26 | ## Initializing
+  27 | 
+  28 | You can initialize a new Supabase client using the `create_client()` method.
+  29 | 
+  30 | The Supabase client is your entrypoint to the rest of the Supabase functionality and is the easiest way to interact with everything we offer within the Supabase ecosystem.
+  31 | 
+  32 | ### Parameters
+  33 | 
+  34 | - supabase\_urlRequiredstring
+  35 | 
+  36 | 
+  37 | 
+  38 | The unique Supabase URL which is supplied when you create a new project in your project dashboard.
+  39 | 
+  40 | - supabase\_keyRequiredstring
+  41 | 
+  42 | 
+  43 | 
+  44 | The unique Supabase Key which is supplied when you create a new project in your project dashboard.
+  45 | 
+  46 | - optionsOptionalClientOptions
+  47 | 
+  48 | 
+  49 | 
+  50 | Options to change the Auth behaviors.
+  51 | 
+  52 | 
+  53 | 
+  54 | Details
+  55 | 
+  56 | 
+  57 | create\_client()With timeout option
+  58 | 
+  59 | ```python
+  60 | import os
+  61 | from supabase import create_client, Client
+  62 | 
+  63 | url: str = os.environ.get("SUPABASE_URL")
+  64 | key: str = os.environ.get("SUPABASE_KEY")
+  65 | supabase: Client = create_client(url, key)
+  66 | ```
+  67 | 
+  68 | * * *
+  69 | 
+  70 | ## Fetch data
+  71 | 
+  72 | - By default, Supabase projects return a maximum of 1,000 rows. This setting can be changed in your project's [API settings](https://supabase.com/dashboard/project/_/settings/api). It's recommended that you keep it low to limit the payload size of accidental or malicious requests. You can use `range()` queries to paginate through your data.
+  73 | - `select()` can be combined with [Filters](https://supabase.com/docs/reference/python/using-filters)
+  74 | - `select()` can be combined with [Modifiers](https://supabase.com/docs/reference/python/using-modifiers)
+  75 | - `apikey` is a reserved keyword if you're using the [Supabase Platform](https://supabase.com/docs/guides/platform) and [should be avoided as a column name](https://github.com/supabase/supabase/issues/5465).
+  76 | 
+  77 | ### Parameters
+  78 | 
+  79 | - columnsOptionalstring
+  80 | 
+  81 | 
+  82 | 
+  83 | The columns to retrieve, defaults to `*`.
+  84 | 
+  85 | - countOptionalCountMethod
+  86 | 
+  87 | 
+  88 | 
+  89 | The property to use to get the count of rows returned.
+  90 | 
+  91 | 
+  92 | Getting your dataSelecting specific columnsQuery referenced tablesQuery referenced tables through a join tableQuery the same referenced table multiple timesFiltering through referenced tablesQuerying referenced table with countQuerying with count optionQuerying JSON dataQuerying referenced table with inner joinSwitching schemas per query
+  93 | 
+  94 | ```python
+  95 | 
+  96 | response = (
+  97 |     supabase.table("planets")
+  98 |     .select("*")
+  99 |     .execute()
+ 100 | )
+ 101 | ```
+ 102 | 
+ 103 | 
+ 104 | * * *
+ 105 | 
+ 106 | ## Insert data
+ 107 | 
+ 108 | ### Parameters
+ 109 | 
+ 110 | - jsonRequireddict, list
+ 111 | 
+ 112 | 
+ 113 | 
+ 114 | The values to insert. Pass an dict to insert a single row or an list to insert multiple rows.
+ 115 | 
+ 116 | - countOptionalCountMethod
+ 117 | 
+ 118 | 
+ 119 | 
+ 120 | The property to use to get the count of rows returned.
+ 121 | 
+ 122 | - returningOptionalReturnMethod
+ 123 | 
+ 124 | 
+ 125 | 
+ 126 | Either 'minimal' or 'representation'. Defaults to 'representation'.
+ 127 | 
+ 128 | - default\_to\_nullOptionalbool
+ 129 | 
+ 130 | 
+ 131 | 
+ 132 | Make missing fields default to `null`. Otherwise, use the default value for the column. Only applies for bulk inserts.
+ 133 | 
+ 134 | 
+ 135 | Create a recordBulk create
+ 136 | 
+ 137 | ```python
+ 138 | 
+ 139 | response = (
+ 140 |     supabase.table("planets")
+ 141 |     .insert({"id": 1, "name": "Pluto"})
+ 142 |     .execute()
+ 143 | )
+ 144 | ```
+ 145 | 
+ 146 | 
+ 147 | * * *
+ 148 | 
+ 149 | ## Update data
+ 150 | 
+ 151 | - `update()` should always be combined with [Filters](https://supabase.com/docs/reference/python/using-filters) to target the item(s) you wish to update.
+ 152 | 
+ 153 | ### Parameters
+ 154 | 
+ 155 | - jsonRequireddict, list
+ 156 | 
+ 157 | 
+ 158 | 
+ 159 | The values to insert. Pass an dict to insert a single row or an list to insert multiple rows.
+ 160 | 
+ 161 | - countOptionalCountMethod
+ 162 | 
+ 163 | 
+ 164 | 
+ 165 | The property to use to get the count of rows returned.
+ 166 | 
+ 167 | 
+ 168 | Updating your dataUpdating JSON data
+ 169 | 
+ 170 | ```python
+ 171 | 
+ 172 | response = (
+ 173 |     supabase.table("instruments")
+ 174 |     .update({"name": "piano"})
+ 175 |     .eq("id", 1)
+ 176 |     .execute()
+ 177 | )
+ 178 | ```
+ 179 | 
+ 180 | 
+ 181 | * * *
+ 182 | 
+ 183 | ## Upsert data
+ 184 | 
+ 185 | - Primary keys must be included in the `values` dict to use upsert.
+ 186 | 
+ 187 | ### Parameters
+ 188 | 
+ 189 | - jsonRequireddict, list
+ 190 | 
+ 191 | 
+ 192 | 
+ 193 | The values to insert. Pass an dict to insert a single row or an list to insert multiple rows.
+ 194 | 
+ 195 | - countOptionalCountMethod
+ 196 | 
+ 197 | 
+ 198 | 
+ 199 | The property to use to get the count of rows returned.
+ 200 | 
+ 201 | - returningOptionalReturnMethod
+ 202 | 
+ 203 | 
+ 204 | 
+ 205 | Either 'minimal' or 'representation'. Defaults to 'representation'.
+ 206 | 
+ 207 | - ignore\_duplicatesOptionalbool
+ 208 | 
+ 209 | 
+ 210 | 
+ 211 | Whether duplicate rows should be ignored.
+ 212 | 
+ 213 | - on\_conflictOptionalstring
+ 214 | 
+ 215 | 
+ 216 | 
+ 217 | Specified columns to be made to work with UNIQUE constraint.
+ 218 | 
+ 219 | - default\_to\_nullOptionalbool
+ 220 | 
+ 221 | 
+ 222 | 
+ 223 | Make missing fields default to `null`. Otherwise, use the default value for the column. Only applies for bulk inserts.
+ 224 | 
+ 225 | 
+ 226 | Upsert your dataBulk Upsert your dataUpserting into tables with constraints
+ 227 | 
+ 228 | ```python
+ 229 | 
+ 230 | response = (
+ 231 |     supabase.table("instruments")
+ 232 |     .upsert({"id": 1, "name": "piano"})
+ 233 |     .execute()
+ 234 | )
+ 235 | ```
+ 236 | 
+ 237 | 
+ 238 | * * *
+ 239 | 
+ 240 | ## Delete data
+ 241 | 
+ 242 | - `delete()` should always be combined with [filters](https://supabase.com/docs/reference/python/using-filters) to target the item(s) you wish to delete.
+ 243 | - If you use `delete()` with filters and you have [RLS](https://supabase.com/docs/learn/auth-deep-dive/auth-row-level-security) enabled, only rows visible through `SELECT` policies are deleted. Note that by default no rows are visible, so you need at least one `SELECT`/ `ALL` policy that makes the rows visible.
+ 244 | - When using `delete().in_()`, specify an array of values to target multiple rows with a single query. This is particularly useful for batch deleting entries that share common criteria, such as deleting users by their IDs. Ensure that the array you provide accurately represents all records you intend to delete to avoid unintended data removal.
+ 245 | 
+ 246 | ### Parameters
+ 247 | 
+ 248 | - countOptionalCountMethod
+ 249 | 
+ 250 | 
+ 251 | 
+ 252 | The property to use to get the count of rows returned.
+ 253 | 
+ 254 | - returningOptionalReturnMethod
+ 255 | 
+ 256 | 
+ 257 | 
+ 258 | Either 'minimal' or 'representation'. Defaults to 'representation'.
+ 259 | 
+ 260 | 
+ 261 | Delete recordsDelete multiple records
+ 262 | 
+ 263 | ```python
+ 264 | 
+ 265 | response = (
+ 266 |     supabase.table("countries")
+ 267 |     .delete()
+ 268 |     .eq("id", 1)
+ 269 |     .execute()
+ 270 | )
+ 271 | ```
+ 272 | 
+ 273 | 
+ 274 | * * *
+ 275 | 
+ 276 | ## Call a Postgres function
+ 277 | 
+ 278 | You can call Postgres functions as _Remote Procedure Calls_, logic in your database that you can execute from anywhere. Functions are useful when the logic rarely changes—like for password resets and updates.
+ 279 | 
+ 280 | ```flex
+ 281 | 
+ 282 | 1
+ 283 | 2
+ 284 | 3
+ 285 | create or replace function hello_world() returns text as $$  select 'Hello world';$$ language sql;
+ 286 | ```
+ 287 | 
+ 288 | ### Parameters
+ 289 | 
+ 290 | - fnRequiredcallable
+ 291 | 
+ 292 | 
+ 293 | 
+ 294 | The stored procedure call to be executed.
+ 295 | 
+ 296 | - paramsOptionaldict of any
+ 297 | 
+ 298 | 
+ 299 | 
+ 300 | Parameters passed into the stored procedure call.
+ 301 | 
+ 302 | - getOptionaldict of any
+ 303 | 
+ 304 | 
+ 305 | 
+ 306 | When set to `true`, `data` will not be returned. Useful if you only need the count.
+ 307 | 
+ 308 | - headOptionaldict of any
+ 309 | 
+ 310 | 
+ 311 | 
+ 312 | When set to `true`, the function will be called with read-only access mode.
+ 313 | 
+ 314 | - countOptionalCountMethod
+ 315 | 
+ 316 | 
+ 317 | 
+ 318 | Count algorithm to use to count rows returned by the function. Only applicable for [set-returning functions](https://www.postgresql.org/docs/current/functions-srf.html). `"exact"`: Exact but slow count algorithm. Performs a `COUNT(*)` under the hood. `"planned"`: Approximated but fast count algorithm. Uses the Postgres statistics under the hood. `"estimated"`: Uses exact count for low numbers and planned count for high numbers.
+ 319 | 
+ 320 | 
+ 321 | Call a Postgres function without argumentsCall a Postgres function with argumentsBulk processingCall a Postgres function with filtersCall a read-only Postgres function
+ 322 | 
+ 323 | ```python
+ 324 | 
+ 325 | response = (
+ 326 |     supabase.rpc("hello_world")
+ 327 |     .execute()
+ 328 | )
+ 329 | ```
+ 330 | 
+ 331 | Data source
+ 333 | 
+ 334 | * * *
+ 335 | 
+ 336 | ## Using filters
+ 337 | 
+ 338 | Filters allow you to only return rows that match certain conditions.
+ 339 | 
+ 340 | Filters can be used on `select()`, `update()`, `upsert()`, and `delete()` queries.
+ 341 | 
+ 342 | If a Postgres function returns a table response, you can also apply filters.
+ 343 | 
+ 344 | Applying FiltersChainingConditional chainingFilter by values within JSON columnFilter Foreign Tables
+ 345 | 
+ 346 | ```python
+ 347 | 
+ 348 | # Correct
+ 349 | response = (
+ 350 |     supabase.table("instruments")
+ 351 |     .select("name, section_id")
+ 352 |     .eq("name", "flute")
+ 353 |     .execute()
+ 354 | )
+ 355 | # Incorrect
+ 356 | # response = (
+ 357 | #     supabase.table("instruments")
+ 358 | #     .eq("name", "flute")
+ 359 | #     .select("name, section_id")
+ 360 | #     .execute()
+ 361 | # )
+ 362 | ```
+ 363 | 
+ 364 | 
+ 365 | 
+ 366 | 
+ 367 | * * *
+ 368 | 
+ 369 | ## Column is equal to a value
+ 370 | 
+ 371 | Match only rows where `column` is equal to `value`.
+ 372 | 
+ 373 | ### Parameters
+ 374 | 
+ 375 | - columnRequiredstring
+ 376 | 
+ 377 | 
+ 378 | 
+ 379 | The column to filter on
+ 380 | 
+ 381 | - valueRequiredany
+ 382 | 
+ 383 | 
+ 384 | 
+ 385 | The value to filter by
+ 386 | 
+ 387 | 
+ 388 | With \`select()\`
+ 389 | 
+ 390 | ```flex
+ 391 | 
+ 392 | 1
+ 393 | 2
+ 394 | 3
+ 395 | 4
+ 396 | 5
+ 397 | 6
+ 398 | 399 | response = (    supabase.table("planets")    .select("*")    .eq("name", "Earth")    .execute())
+ 400 | ```
+ 401 | 
+ 402 | 
+ 403 | 
+ 404 | 
+ 405 | * * *
+ 406 | 
+ 407 | ## Column is not equal to a value
+ 408 | 
+ 409 | Match only rows where `column` is not equal to `value`.
+ 410 | 
+ 411 | ### Parameters
+ 412 | 
+ 413 | - columnRequiredstring
+ 414 | 
+ 415 | 
+ 416 | 
+ 417 | The column to filter on
+ 418 | 
+ 419 | - valueRequiredany
+ 420 | 
+ 421 | 
+ 422 | 
+ 423 | The value to filter by
+ 424 | 
+ 425 | 
+ 426 | With \`select()\`
+ 427 | 
+ 428 | ```flex
+ 429 | 
+ 430 | 1
+ 431 | 2
+ 432 | 3
+ 433 | 4
+ 434 | 5
+ 435 | 6
+ 436 | response = (    supabase.table("planets")    .select("*")    .neq("name", "Earth")    .execute())
+ 437 | ```
+ 438 | 
+ 439 | 
+ 440 | 
+ 441 | 
+ 442 | * * *
+ 443 | 
+ 444 | ## Column is greater than a value
+ 445 | 
+ 446 | Match only rows where `column` is greather than `value`.
+ 447 | 
+ 448 | ### Parameters
+ 449 | 
+ 450 | - columnRequiredstring
+ 451 | 
+ 452 | 
+ 453 | 
+ 454 | The column to filter on
+ 455 | 
+ 456 | - valueRequiredany
+ 457 | 
+ 458 | 
+ 459 | 
+ 460 | The value to filter by
+ 461 | 
+ 462 | 
+ 463 | With \`select()\`
+ 464 | 
+ 465 | ```flex
+ 466 | 
+ 467 | 1
+ 468 | 2
+ 469 | 3
+ 470 | 4
+ 471 | 5
+ 472 | 6
+ 473 | response = (    supabase.table("planets")    .select("*")    .gt("id", 2)    .execute())
+ 474 | ```
+ 475 | 
+ 476 | Data source
+ 477 | 
+ 478 | Response
+ 479 | 
+ 480 | Notes
+ 481 | 
+ 482 | * * *
+ 483 | 
+ 484 | ## Column is greater than or equal to a value
+ 485 | 
+ 486 | Match only rows where `column` is greater than or equal to `value`.
+ 487 | 
+ 488 | ### Parameters
+ 489 | 
+ 490 | - columnRequiredstring
+ 491 | 
+ 492 | 
+ 493 | 
+ 494 | The column to filter on
+ 495 | 
+ 496 | - valueRequiredany
+ 497 | 
+ 498 | 
+ 499 | 
+ 500 | The value to filter by
+ 501 | 
+ 502 | 
+ 503 | With \`select()\`
+ 504 | 
+ 505 | ```python
+ 506 | 
+ 507 | response = (
+ 508 |     supabase.table("planets")
+ 509 |     .select("*")
+ 510 |     .gte("id", 2)
+ 511 |     .execute()
+ 512 | )
+ 513 | ```
+ 514 | 
+ 515 | 
+ 516 | 
+ 517 | 
+ 518 | * * *
+ 519 | 
+ 520 | ## Column is less than a value
+ 521 | 
+ 522 | Match only rows where `column` is less than `value`.
+ 523 | 
+ 524 | ### Parameters
+ 525 | 
+ 526 | - columnRequiredstring
+ 527 | 
+ 528 | 
+ 529 | 
+ 530 | The column to filter on
+ 531 | 
+ 532 | - valueRequiredany
+ 533 | 
+ 534 | 
+ 535 | 
+ 536 | The value to filter by
+ 537 | 
+ 538 | 
+ 539 | With \`select()\`
+ 540 | 
+ 541 | ```flex
+ 542 | 
+ 543 | 1
+ 544 | 2
+ 545 | 3
+ 546 | 4
+ 547 | 5
+ 548 | 6
+ 549 | response = (    supabase.table("planets")    .select("*")    .lt("id", 2)    .execute())
+ 550 | ```
+ 551 | 
+ 552 | Data source
+ 553 | 
+ 554 | Response
+ 555 | 
+ 556 | * * *
+ 557 | 
+ 558 | * * *
+ 559 | 
+ 560 | ## Column is less than or equal to a value
+ 561 | 
+ 562 | ### Parameters
+ 563 | 
+ 564 | - columnRequiredstring
+ 565 | 
+ 566 | 
+ 567 | 
+ 568 | The column to filter on
+ 569 | 
+ 570 | - valueRequiredany
+ 571 | 
+ 572 | 
+ 573 | 
+ 574 | The value to filter by
+ 575 | 
+ 576 | 
+ 577 | With \`select()\`
+ 578 | 
+ 579 | ```flex
+ 580 | 
+ 581 | 1
+ 582 | 2
+ 583 | 3
+ 584 | 4
+ 585 | 5
+ 586 | 6
+ 587 | response = (    supabase.table("planets")    .select("*")    .lte("id", 2)    .execute())
+ 588 | ```
+ 589 | 
+ 590 | Data source
+ 591 | 
+ 592 | Response
+ 593 | 
+ 594 | * * *
+ 595 | 
+ 596 | ## Column matches a pattern
+ 597 | 
+ 598 | Match only rows where `column` matches `pattern` case-sensitively.
+ 599 | 
+ 600 | ### Parameters
+ 601 | 
+ 602 | - columnRequiredstring
+ 603 | 
+ 604 | 
+ 605 | 
+ 606 | The name of the column to apply a filter on
+ 607 | 
+ 608 | - patternRequiredstring
+ 609 | 
+ 610 | 
+ 611 | 
+ 612 | The pattern to match by
+ 613 | 
+ 614 | 
+ 615 | With \`select()\`
+ 616 | 
+ 617 | ```python
+ 618 | 
+ 619 | response = (
+ 620 |     supabase.table("planets")
+ 621 |     .select("*")
+ 622 |     .like("name", "%Ea%")
+ 623 |     .execute()
+ 624 | )
+ 625 | ```
+ 626 | 
+ 627 | 
+ 628 | * * *
+ 629 | 
+ 630 | ## Column matches a case-insensitive pattern
+ 631 | 
+ 632 | Match only rows where `column` matches `pattern` case-insensitively.
+ 633 | 
+ 634 | ### Parameters
+ 635 | 
+ 636 | - columnRequiredstring
+ 637 | 
+ 638 | 
+ 639 | 
+ 640 | The name of the column to apply a filter on
+ 641 | 
+ 642 | - patternRequiredstring
+ 643 | 
+ 644 | 
+ 645 | 
+ 646 | The pattern to match by
+ 647 | 
+ 648 | 
+ 649 | With \`select()\`
+ 650 | 
+ 651 | ```python
+ 652 | 
+ 653 | response = (
+ 654 |     supabase.table("planets")
+ 655 |     .select("*")
+ 656 |     .ilike("name", "%ea%")
+ 657 |     .execute()
+ 658 | )
+ 659 | ```
+ 660 | 
+ 661 | Data source
+ 662 | 
+ 663 | Response
+ 664 | 
+ 665 | * * *
+ 666 | 
+ 667 | ## Column is a value
+ 668 | 
+ 669 | Match only rows where `column` IS `value`.
+ 670 | 
+ 671 | ### Parameters
+ 672 | 
+ 673 | - columnRequiredstring
+ 674 | 
+ 675 | 
+ 676 | 
+ 677 | The name of the column to apply a filter on
+ 678 | 
+ 679 | - valueRequirednull \| boolean
+ 680 | 
+ 681 | 
+ 682 | 
+ 683 | The value to match by
+ 684 | 
+ 685 | 
+ 686 | Checking for nullness, True or False
+ 687 | 
+ 688 | ```python
+ 689 | 
+ 690 | response = (
+ 691 |     supabase.table("planets")
+ 692 |     .select("*")
+ 693 |     .is_("name", "null")
+ 694 |     .execute()
+ 695 | )
+ 696 | ```
+ 697 | 
+ 698 | 
+ 699 | Notes
+ 700 | 
+ 701 | * * *
+ 702 | 
+ 703 | ## Column is in an array
+ 704 | 
+ 705 | Match only rows where `column` is included in the `values` array.
+ 706 | 
+ 707 | ### Parameters
+ 708 | 
+ 709 | - columnRequiredstring
+ 710 | 
+ 711 | 
+ 712 | 
+ 713 | The column to filter on
+ 714 | 
+ 715 | - valuesRequiredarray
+ 716 | 
+ 717 | 
+ 718 | 
+ 719 | The values to filter by
+ 720 | 
+ 721 | 
+ 722 | With \`select()\`
+ 723 | 
+ 724 | ```python
+ 725 | 
+ 726 | response = (
+ 727 |     supabase.table("planets")
+ 728 |     .select("*")
+ 729 |     .in_("name", ["Earth", "Mars"])
+ 730 |     .execute()
+ 731 | )
+ 732 | ```
+ 733 | 
+ 734 | Data source
+ 735 | 
+ 736 | Response
+ 737 | 
+ 738 | * * *
+ 739 | 
+ 740 | ## Column contains every element in a value
+ 741 | 
+ 742 | Only relevant for jsonb, array, and range columns. Match only rows where `column` contains every element appearing in `value`.
+ 743 | 
+ 744 | ### Parameters
+ 745 | 
+ 746 | - columnRequiredstring
+ 747 | 
+ 748 | 
+ 749 | 
+ 750 | The column to filter on
+ 751 | 
+ 752 | - valuesRequiredobject
+ 753 | 
+ 754 | 
+ 755 | 
+ 756 | The jsonb, array, or range value to filter with
+ 757 | 
+ 758 | 
+ 759 | On array columnsOn range columnsOn \`jsonb\` columns
+ 760 | 
+ 761 | ```python
+ 762 | 
+ 763 | response = (
+ 764 |     supabase.table("issues")
+ 765 |     .select("*")
+ 766 |     .contains("tags", ["is:open", "priority:low"])
+ 767 |     .execute()
+ 768 | )
+ 769 | ```
+ 770 | 
+ 771 | Data source
+ 772 | 
+ 773 | Response
+ 774 | 
+ 775 | * * *
+ 776 | 
+ 777 | ## Contained by value
+ 778 | 
+ 779 | Only relevant for jsonb, array, and range columns. Match only rows where every element appearing in `column` is contained by `value`.
+ 780 | 
+ 781 | ### Parameters
+ 782 | 
+ 783 | - columnRequiredstring
+ 784 | 
+ 785 | 
+ 786 | 
+ 787 | The jsonb, array, or range column to filter on
+ 788 | 
+ 789 | - valueRequiredobject
+ 790 | 
+ 791 | 
+ 792 | 
+ 793 | The jsonb, array, or range value to filter with
+ 794 | 
+ 795 | 
+ 796 | On array columnsOn range columnsOn \`jsonb\` columns
+ 797 | 
+ 798 | ```
+ 799 | 
+ 800 | response = (
+ 801 |     supabase.table("classes")
+ 802 |     .select("name")
 Response
 
 * * *
@@ -1125,19 +835,18 @@ Details
 
 Text searchBasic normalizationFull normalizationWebsearch
 
-```flex
+```python
 
-1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-response = (    supabase.table("texts")    .select("content")    .text_search(        "content",         "'eggs' & 'ham'",         options={"config": "english"},    )    .execute())
+response = (
+    supabase.table("texts")
+    .select("content")
+    .text_search(
+        "content",
+        "'eggs' & 'ham'",
+        options={"config": "english"},
+    )
+    .execute()
+)
 ```
 
 Data source
@@ -1182,11 +891,10 @@ Response
 
 Match only rows which doesn't satisfy the filter. `not_` expects you to use the raw PostgREST syntax for the filter values.
 
-```flex
+```python
 
-1
-2
-.not_.in_('id', '(5,6,7)')  # Use `()` for `in` filter.not_.contains('arraycol', '{"a","b"}')  # Use `{}` for array values
+.not_.in_('id', '(5,6,7)')  # Use `()` for `in` filter.
+.not_.contains('arraycol', '{"a","b"}')  # Use `{}` for array values
 ```
 
 With \`select()\`
@@ -1212,11 +920,10 @@ Response
 
 or\_() expects you to use the raw PostgREST syntax for the filter names and values.
 
-```flex
+```python
 
-1
-2
-.or_('id.in.(5,6,7), arraycol.cs.{"a","b"}')  # Use `()` for `in` filter, `{}` for array values and `cs` for `contains()`..or_('id.in.(5,6,7), arraycol.cd.{"a","b"}')  # Use `cd` for `containedBy()`
+.or_('id.in.(5,6,7), arraycol.cs.{"a","b"}')  # Use `()` for `in` filter, `{}` for array values and `cs` for `contains()`
+.or_('id.in.(5,6,7), arraycol.cd.{"a","b"}')  # Use `cd` for `containedBy()`
 ```
 
 ### Parameters
@@ -1381,15 +1088,14 @@ Set this to limit rows of foreign tables instead of the parent table.
 
 With \`select()\`On a foreign table
 
-```flex
+```python
 
-1
-2
-3
-4
-5
-6
-response = (    supabase.table("planets")    .select("name")    .limit(1)    .execute())
+response = (
+    supabase.table("planets")
+    .select("name")
+    .limit(1)
+    .execute()
+)
 ```
 
 Data source
