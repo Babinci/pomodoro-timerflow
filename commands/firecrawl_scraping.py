@@ -1,7 +1,4 @@
 # Initialize the app
-API_KEY = "fc-2e61828577aa4b4bafc43b6470e25576"
-
-
 from firecrawl import FirecrawlApp
 import os
 import json
@@ -11,14 +8,15 @@ import time
 from datetime import datetime
 
 app = FirecrawlApp(api_key=API_KEY)
-output_folder = r"C:\Users\walko\IT_projects\pomodoro-timerflow\documents\fastapi_docs"
+output_folder = r"C:\Users\walko\IT_projects\pomodoro-timerflow\documents\supabase_general_docs"
 
 # Create the output folder if it doesn't exist
 Path(output_folder).mkdir(parents=True, exist_ok=True)
 print(f"[{datetime.now().strftime('%H:%M:%S')}] Output folder: {output_folder}")
 
 # Display starting message
-print(f"[{datetime.now().strftime('%H:%M:%S')}] Starting crawl of https://fastapi.tiangolo.com/")
+docs_to_scrape = "https://supabase.com/docs"
+print(f"[{datetime.now().strftime('%H:%M:%S')}] Starting crawl of {docs_to_scrape}")
 print(f"[{datetime.now().strftime('%H:%M:%S')}] Maximum pages to crawl: 500")
 print(f"[{datetime.now().strftime('%H:%M:%S')}] Poll interval: 30 seconds")
 
@@ -28,7 +26,7 @@ print(f"[{datetime.now().strftime('%H:%M:%S')}] Submitting crawl job...")
 
 # Use crawl_url instead of submit_crawl
 crawl_result = app.crawl_url(
-    'https://fastapi.tiangolo.com/', 
+    docs_to_scrape, 
     params={
         'limit': 500,
         'scrapeOptions': {'formats': ['markdown']},
