@@ -2,8 +2,29 @@ import os
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from supabase.client import ClientOptions
-load_dotenv(r"C:\Users\walko\IT_projects\Supabase_with_mcp\supabase\docker\.env")
 
+# Load first .env file and store its values
+load_dotenv(r"C:\Users\walko\IT_projects\Supabase_with_mcp\supabase\docker\.env")
+docker_anon_key = os.getenv("ANON_KEY")
+docker_service_role_key = os.getenv("SERVICE_ROLE_KEY")
+
+# Load the second .env file temporarily without affecting current environment
+from dotenv import dotenv_values
+local_env = dotenv_values(".env")
+local_anon_key = local_env.get("ANON_KEY")
+local_service_role_key = local_env.get("SERVICE_ROLE_KEY")
+
+# Compare keys
+print(f"ANON_KEYs match: {docker_anon_key == local_anon_key}")
+print(f"SERVICE_ROLE_KEYs match: {docker_service_role_key == local_service_role_key}")
+
+# Display values for verification
+print(f"Docker ANON_KEY: {docker_anon_key}")
+print(f"Local ANON_KEY: {local_anon_key}")
+print(f"Docker SERVICE_ROLE_KEY: {docker_service_role_key}")
+print(f"Local SERVICE_ROLE_KEY: {local_service_role_key}")
+
+# Continue with existing code
 env2path = ".env"
 
 supabase_url = "http://localhost:8000"
