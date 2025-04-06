@@ -1,6 +1,7 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional, Dict, List
+from pydantic import BaseModel, EmailStr, Field
+from typing import Optional, Dict, List, Union, Any
 from datetime import datetime
+from uuid import UUID
 
 from enum import Enum
 
@@ -45,11 +46,14 @@ class UserCreate(UserBase):
     password: str
 
 class User(UserBase):
-    id: int
+    id: Union[str, UUID]  # Support for UUIDs in Supabase
     pomodoro_settings: UserSettings
 
+    # Allowing for non-strict field validation
     class Config:
         from_attributes = True
+        arbitrary_types_allowed = True
+        extra = "ignore"  # Ignore extra fields
 
 class TaskBase(BaseModel):
     title: str
@@ -61,15 +65,17 @@ class TaskCreate(TaskBase):
 
 class Task(TaskBase):
     id: int
-    user_id: int
+    user_id: Union[str, UUID]  # Support for UUIDs in Supabase
     completed_pomodoros: int
     created_at: datetime
-    completed_at: Optional[datetime]
+    completed_at: Optional[datetime] = None
     is_active: bool
     position: int
 
     class Config:
         from_attributes = True
+        arbitrary_types_allowed = True
+        extra = "ignore"  # Ignore extra fields
 
 class Token(BaseModel):
     access_token: str
@@ -88,17 +94,19 @@ class PomodoroSessionCreate(PomodoroSessionBase):
 
 class PomodoroSession(PomodoroSessionBase):
     id: int
-    user_id: int
+    user_id: Union[str, UUID]  # Support for UUIDs in Supabase
     start_time: datetime
-    end_time: Optional[datetime]
+    end_time: Optional[datetime] = None
     completed: bool
 
     class Config:
         from_attributes = True
+        arbitrary_types_allowed = True
+        extra = "ignore"  # Ignore extra fields
 
 class TaskOrder(BaseModel):
     task_ids: List[int]
 
 class WSMessage(BaseModel):
     type: str
-    data: dict
+    data: Dict[str, Any]

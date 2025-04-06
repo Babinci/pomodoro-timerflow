@@ -68,7 +68,7 @@ async def supabase_diagnostic():
             "config": get_diagnostics(),
             "environment": {
                 "SUPABASE_URL": os.getenv("SUPABASE_URL", "not set"),
-                "SUPABASE_KEY": "***" + os.getenv("SUPABASE_KEY", "not set")[-4:] if os.getenv("SUPABASE_KEY") else "not set"
+                "SUPABASE_KEY": "***" + os.getenv("ANON_KEY", "not set")[-4:] if os.getenv("ANON_KEY") else "not set"
             }
         }
     except Exception as e:
@@ -80,9 +80,9 @@ async def supabase_diagnostic():
 async def health_check():
     """Health check endpoint to verify API is running with database connection"""
     try:
-        # Try to see if the database is accessible for anonymous users
-        # This will work once proper RLS policies are configured
-        response = supabase.table("users").select("count", count="exact").execute()
+        # Try to see if the database is accessible
+        # Use the profiles table we created instead of users
+        response = supabase.table("profiles").select("count", count="exact").execute()
         return {
             "status": "ok", 
             "service": "running", 
@@ -92,14 +92,13 @@ async def health_check():
         }
     except Exception as e:
         # RLS is not properly configured yet, but the service is running
-        # In production, we'd need to fix the RLS policies or use service_role key
         logger.error(f"Health check failed: {str(e)}")
         return {
             "status": "ok", 
             "service": "running", 
             "version": "2.0.0",
             "database": "configured but permissions not setup",
-            "error": "Permission denied - RLS policies need configuration"
+            "error": str(e)
         }
 
 # Include routers

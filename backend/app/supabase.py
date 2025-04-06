@@ -1,35 +1,47 @@
-# This API key is for demo purposes only and will not work for production.
-# In a real production environment, this would be replaced with actual credentials.
-
+# supabase.py
+"""
+Configuration for Supabase client
+"""
 from supabase import create_client, Client
 from supabase.client import ClientOptions
 import os
 from dotenv import load_dotenv
+import logging
 
-# First try to load from project root .env file
+# Setup logger
+logger = logging.getLogger(__name__)
+
+# Load environment variables
 load_dotenv()
 
-# Fallback to specific location if needed
-if not os.getenv("ANON_KEY"):
-    try:
-        load_dotenv(r"C:\Users\walko\IT_projects\Supabase_with_mcp\supabase\docker\.env")
-    except:
-        pass
+# For Docker networking, we need to use host.docker.internal instead of localhost
+# This allows the container to connect to services on the host machine
+supabase_url = os.getenv("SUPABASE_URL", "http://host.docker.internal:8000")
 
-# For local development (localhost:8000) with Supabase
-supabase_url = os.getenv("SUPABASE_URL", "http://localhost:8000")
+# Use the service role key for admin operations
+supabase_key = os.getenv("SERVICE_ROLE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU")
 
-# This is a demo key for local development only
-supabase_key = os.getenv("ANON_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0")
-
-# Initialize Supabase client
-supabase: Client = create_client(
-    supabase_url,
-    supabase_key,
-    options=ClientOptions(
-        schema="pomodoro",
+try:
+    # Initialize Supabase client
+    logger.info(f"Initializing Supabase client with URL: {supabase_url}")
+    supabase: Client = create_client(
+        supabase_url,
+        supabase_key,
+        options=ClientOptions(
+            schema="pomodoro",
+        )
     )
-)
+    logger.info("Supabase client initialized successfully")
+except Exception as e:
+    logger.error(f"Error initializing Supabase client: {str(e)}")
+    # Create a placeholder client that will raise appropriate errors when used
+    from types import SimpleNamespace
+    supabase = SimpleNamespace()
+    supabase.table = lambda _: SimpleNamespace(
+        select=lambda *args: SimpleNamespace(
+            execute=lambda: {"data": [], "error": f"Failed to connect to Supabase: {str(e)}"}
+        )
+    )
 
 # Create a diagnostic version that can help us identify the issues
 def get_diagnostics():

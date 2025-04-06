@@ -9,9 +9,17 @@ from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer, HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from types import SimpleNamespace
+import logging
+import uuid
+from datetime import datetime, timedelta
+import jwt
 
 # Load environment variables
 load_dotenv()
+
+# Create a logger
+logger = logging.getLogger(__name__)
 
 # Import the Supabase client
 from .supabase import supabase
@@ -38,6 +46,7 @@ async def authenticate_user(email: str, password: str):
         response = supabase.table("profiles").select("*").eq("username", email).limit(1).execute()
         
         if not response.data or len(response.data) == 0:
+            logger.warning(f"User not found: {email}")
             return None
             
         user = response.data[0]
@@ -49,13 +58,7 @@ async def authenticate_user(email: str, password: str):
         # })
         # But for our custom implementation, we'll create a session
         
-        # Create a custom response object
-        from types import SimpleNamespace
-        
         # Create token for the user
-        from datetime import datetime, timedelta
-        import jwt
-        
         # Create JWT token
         token_data = {"sub": email, "exp": datetime.utcnow() + timedelta(minutes=30)}
         access_token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
@@ -77,10 +80,11 @@ async def authenticate_user(email: str, password: str):
         auth_response.user = user_obj
         auth_response.session = session
         
+        logger.info(f"User authenticated: {email}")
         return auth_response
     except Exception as e:
         # Log the error
-        print(f"Authentication error: {str(e)}")
+        logger.error(f"Authentication error: {str(e)}")
         return None
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -99,6 +103,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         response = supabase.table("profiles").select("*").eq("id", user_data["user_id"]).limit(1).execute()
         
         if not response.data or len(response.data) == 0:
+            logger.warning(f"User not found in profiles table: {user_data['user_id']}")
             raise credentials_exception
             
         user = response.data[0]
@@ -115,19 +120,18 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise
     except Exception as e:
         # Log the error
-        print(f"Token validation error: {str(e)}")
+        logger.error(f"Token validation error: {str(e)}")
         raise credentials_exception
 
 async def verify_token(token: str) -> Dict[str, Any]:
     """Verify a JWT token"""
     try:
         # Decode the JWT token
-        import jwt
-        
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email = payload.get("sub")
         
         if not email:
+            logger.warning("Token missing email in payload")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token - missing email"
@@ -137,6 +141,7 @@ async def verify_token(token: str) -> Dict[str, Any]:
         response = supabase.table("profiles").select("id").eq("email", email).limit(1).execute()
         
         if not response.data or len(response.data) == 0:
+            logger.warning(f"User with email {email} not found in profiles table")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="User not found"
@@ -147,11 +152,13 @@ async def verify_token(token: str) -> Dict[str, Any]:
             "email": email
         }
     except jwt.PyJWTError as e:
+        logger.error(f"JWT validation error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid token: {str(e)}"
         )
     except Exception as e:
+        logger.error(f"Token verification error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Could not validate credentials: {str(e)}"
@@ -163,9 +170,10 @@ async def get_user_from_db(user_id: str):
         response = supabase.table("profiles").select("*").eq("id", user_id).execute()
         if response.data and len(response.data) > 0:
             return response.data[0]
+        logger.warning(f"User not found: {user_id}")
         return None
     except Exception as e:
-        print(f"Database error: {str(e)}")
+        logger.error(f"Database error getting user: {str(e)}")
         return None
 
 async def create_user(email: str, password: str, username: str):
@@ -180,9 +188,8 @@ async def create_user(email: str, password: str, username: str):
         
         # For our demo setup, we'll create a user directly in our profiles table
         # with a random UUID
-        import uuid
-        
         user_id = str(uuid.uuid4())
+        logger.info(f"Creating user with ID: {user_id}")
         
         # Define default pomodoro settings
         default_settings = {
@@ -209,20 +216,25 @@ async def create_user(email: str, password: str, username: str):
         }).execute()
         
         if not db_response.data or len(db_response.data) == 0:
+            logger.error("Failed to create user - no data returned from insert operation")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Failed to create user"
             )
             
+        # Create a response object using SimpleNamespace
         response_obj = SimpleNamespace()
         response_obj.id = user_id
         response_obj.email = email
         response_obj.username = username
         
+        logger.info(f"User created successfully: {email}")
         return response_obj
         
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"User creation error: {str(e)}")
+        logger.error(f"User creation error: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Failed to create user: {str(e)}"
