@@ -5,10 +5,10 @@ docker rm pomodoro-app-container || true
 docker build -t pomodoro-app .
 mkdir -p logs
 
-# Run with only the necessary mounts for Supabase
+# Run with the .env file from the project root
 docker run -d -p 8003:8003 \
   -v $(pwd)/logs:/app/logs \
-  -v $(pwd)/backend/credentials/.env:/app/.env \
+  -v $(pwd)/.env:/app/.env \
   --name pomodoro-app-container pomodoro-app
 
 # Wait for container to start
