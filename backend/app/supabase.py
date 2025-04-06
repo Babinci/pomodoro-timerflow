@@ -1,14 +1,16 @@
 # This API key is for demo purposes only and will not work for production.
 # In a real production environment, this would be replaced with actual credentials.
-url = "https://mysupabaseapi.cypher-arena.com/"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
-import os
+
 from supabase import create_client, Client
 from supabase.client import ClientOptions
+import os
+from dotenv import load_dotenv
 
-# Override from environment if available
-url = os.getenv("SUPABASE_URL", url)
-key = os.getenv("SUPABASE_KEY", key)
+load_dotenv(r"C:\Users\walko\IT_projects\Supabase_with_mcp\supabase\docker\.env")
+
+supabase_url = "http://localhost:8000"
+supabase_key = os.getenv("ANON_KEY")
+
 
 # Use this for public endpoints (user operations)
 supabase: Client = create_client(
@@ -16,7 +18,6 @@ supabase: Client = create_client(
     key,
     options=ClientOptions(
         schema="pomodoro",
-        headers={"x-client-info": "pomodoro-timerflow/2.0.0"}
     )
 )
 
