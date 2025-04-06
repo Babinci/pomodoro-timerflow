@@ -59,7 +59,7 @@ export default function LoginForm({ setToken }) {
     }
     
     try {
-      const response = await fetch(`${apiConfig.baseUrl}/users`, {
+      const response = await fetch(`${apiConfig.baseUrl}/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
