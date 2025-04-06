@@ -26,11 +26,14 @@ try:
 except Exception as e:
     print(f"Failed to query public schema: {e}")
 
+# New code for testing user creation and profile access
+print("\n--- COMPREHENSIVE AUTH AND PROFILE ACCESS TEST ---")
+
 # Generate a unique email for testing
 import random
 import string
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Generate random email to avoid conflicts
 random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
@@ -62,43 +65,54 @@ except Exception as e:
     print(f"Failed to create user: {e}")
     user_id = None
 
-# 2. Create a profile in the pomodoro schema for the new user
+# 2. Check if profile was automatically created (by the trigger)
 if user_id:
-    print("\nCreating profile in pomodoro schema")
+    print("\nChecking for existing profile (should be created by trigger)")
     try:
-        # Default pomodoro settings
-        default_settings = {
-            "short": {
-                "work_duration": 25,
-                "short_break": 5,
-                "long_break": 15,
-                "sessions_before_long_break": 4
-            },
-            "long": {
-                "work_duration": 50,
-                "short_break": 10,
-                "long_break": 30,
-                "sessions_before_long_break": 4
-            }
-        }
-        
-        # Insert profile record
-        profile_data = {
-            "id": user_id,
-            "username": test_username,
-            "pomodoro_settings": default_settings,
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat()
-        }
-        
-        profile_response = supabase_pomodoro.table("profiles").insert(profile_data).execute()
+        # Check for existing profile
+        profile_response = supabase_pomodoro.table("profiles").select("*").eq("id", user_id).execute()
         
         if profile_response.data and len(profile_response.data) > 0:
-            print(f"Successfully created profile: {profile_response.data[0]}")
+            print(f"Found existing profile (created by trigger): {profile_response.data[0]}")
         else:
-            print("No data returned when creating profile")
+            print("No profile found, which is unexpected since there's a trigger")
+            
+            # If for some reason no profile exists, create one
+            print("Creating profile manually as fallback")
+            
+            # Default pomodoro settings
+            default_settings = {
+                "short": {
+                    "work_duration": 25,
+                    "short_break": 5,
+                    "long_break": 15,
+                    "sessions_before_long_break": 4
+                },
+                "long": {
+                    "work_duration": 50,
+                    "short_break": 10,
+                    "long_break": 30,
+                    "sessions_before_long_break": 4
+                }
+            }
+            
+            # Insert profile record
+            profile_data = {
+                "id": user_id,
+                "username": test_username,
+                "pomodoro_settings": default_settings,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            profile_response = supabase_pomodoro.table("profiles").insert(profile_data).execute()
+            
+            if profile_response.data and len(profile_response.data) > 0:
+                print(f"Successfully created profile manually: {profile_response.data[0]}")
+            else:
+                print("No data returned when creating profile")
     except Exception as e:
-        print(f"Failed to create profile: {e}")
+        print(f"Error checking/creating profile: {e}")
 
 # 3. Create a task for the user
 if user_id:
@@ -112,7 +126,7 @@ if user_id:
             "completed_pomodoros": 0,
             "is_active": True,
             "position": 1,
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.now(timezone.utc).isoformat()
         }
         
         task_response = supabase_pomodoro.table("tasks").insert(task_data).execute()
