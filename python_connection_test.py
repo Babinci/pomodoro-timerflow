@@ -2,80 +2,72 @@ import os
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from supabase.client import ClientOptions
+load_dotenv(r"C:\Users\walko\IT_projects\Supabase_with_mcp\supabase\docker\.env")
 
-# Load environment variables from the .env file
-load_dotenv(r"C:\Users\walko\IT_projects\pomodoro-timerflow\.env")
 
-# Supabase connection settings
 supabase_url = "http://localhost:8000"
-service_key = os.getenv("SERVICE_ROLE_KEY")
-anon_key = os.getenv("ANON_KEY")
+# supabase_key = os.getenv("ANON_KEY")
+supabase_key = os.getenv("SERVICE_ROLE_KEY")
 
-print(f"Supabase URL: {supabase_url}")
-print(f"Service Key: {service_key[:10]}..." if service_key else "SERVICE_ROLE_KEY not found")
-print(f"Anon Key: {anon_key[:10]}..." if anon_key else "ANON_KEY not found")
 
-# Test 1: Basic connectivity test with public schema
-print("\n=== Testing connection to public schema ===")
+# Create two clients: one for default schema and one for pomodoro schema
+supabase_default: Client = create_client(supabase_url, supabase_key)
+supabase_pomodoro: Client = create_client(
+    supabase_url,
+    supabase_key,
+    options=ClientOptions(schema="pomodoro")
+)
+
+# Test connection with public schema
+print("Public schema test:")
 try:
-    supabase_public = create_client(supabase_url, service_key)
-    # Query a table in public schema (babcia was a test table in your original script)
-    response = supabase_public.table("babcia").select("*").limit(1).execute()
-    print(f"✓ Successfully connected to public schema: {response.data}")
+    response = supabase_default.table("babcia").select("*").limit(1).execute()
+    print(f"Successfully queried 'babcia' table: {response.data}")
 except Exception as e:
-    print(f"✗ Error connecting to public schema: {e}")
+    print(f"Failed to query public schema: {e}")
 
-# Test 2: Test access to pomodoro schema with service role
-print("\n=== Testing connection to pomodoro schema with SERVICE ROLE ===")
+# Generate a unique email for testing
+import random
+import string
+import uuid
+from datetime import datetime
+
+# Generate random email to avoid conflicts
+random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+test_email = f"test_{random_suffix}@example.com"
+test_password = "TestPassword123!"
+test_username = f"testuser_{random_suffix}"
+
+print(f"\nCreating test user with email: {test_email}")
+
+# 1. Create user with Supabase Auth
 try:
-    supabase_pomodoro = create_client(
-        supabase_url,
-        service_key,
-        options=ClientOptions(schema="pomodoro")
-    )
+    # Create user using the service role key which bypasses email confirmation
+    auth_response = supabase_default.auth.admin.create_user({
+        "email": test_email,
+        "password": test_password,
+        "email_confirm": True,  # Automatically confirm the email
+        "user_metadata": {
+            "username": test_username
+        }
+    })
     
-    # Try to list all tables in pomodoro schema
-    print("Tables in pomodoro schema:")
-    for table in ["profiles", "tasks", "pomodoro_sessions", "pomodoro_checkpoints"]:
-        try:
-            count_response = supabase_pomodoro.table(table).select("*", count="exact").limit(0).execute()
-            row_count = count_response.count if hasattr(count_response, 'count') else 0
-            print(f"  ✓ {table}: {row_count} rows")
-        except Exception as e:
-            print(f"  ✗ {table}: Error - {e}")
+    if auth_response:
+        user_id = auth_response.user.id
+        print(f"Successfully created user with ID: {user_id}")
+    else:
+        print("Failed to get user ID from response")
+        user_id = None
 except Exception as e:
-    print(f"✗ Error connecting to pomodoro schema: {e}")
+    print(f"Failed to create user: {e}")
+    user_id = None
 
-# Test 3: Test anonymous access (this will likely fail due to RLS policies)
-print("\n=== Testing connection with ANON KEY ===")
-try:
-    supabase_anon = create_client(
-        supabase_url,
-        anon_key,
-        options=ClientOptions(schema="pomodoro")
-    )
-    
-    # Try to access tasks table as anonymous user
-    response = supabase_anon.table("tasks").select("*").limit(1).execute()
-    print(f"✓ Anonymous access to tasks table works: {response.data}")
-except Exception as e:
-    print(f"✗ Anonymous access failed (expected if RLS is active): {e}")
-
-# Test 4: Create a test profile (this will help test access)
-print("\n=== Attempting to create a test profile ===")
-try:
-    # First check if a test user already exists in auth.users
-    test_email = "test@example.com"
-    
-    # Generate a UUID for the user (normally this would come from auth.users)
-    import uuid
-    test_user_id = str(uuid.uuid4())
-    
-    # Create a profile in pomodoro.profiles
-    profile_data = {
-        "id": test_user_id,
-        "username": "testuser",
-        "pomodoro_settings": {
+# 2. Create a profile in the pomodoro schema for the new user
+if user_id:
+    print("\nCreating profile in pomodoro schema")
+    try:
+        # Default pomodoro settings
+        default_settings = {
             "short": {
                 "work_duration": 25,
                 "short_break": 5,
@@ -89,24 +81,106 @@ try:
                 "sessions_before_long_break": 4
             }
         }
-    }
-    
-    response = supabase_pomodoro.table("profiles").insert(profile_data).execute()
-    print(f"✓ Successfully created test profile: {response.data}")
-    
-    # Now try to create a test task
-    task_data = {
-        "title": "Test Task",
-        "description": "This is a test task",
-        "user_id": test_user_id,
-        "estimated_pomodoros": 3,
-        "is_active": True
-    }
-    
-    response = supabase_pomodoro.table("tasks").insert(task_data).execute()
-    print(f"✓ Successfully created test task: {response.data}")
-    
-except Exception as e:
-    print(f"✗ Error creating test data: {e}")
+        
+        # Insert profile record
+        profile_data = {
+            "id": user_id,
+            "username": test_username,
+            "pomodoro_settings": default_settings,
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat()
+        }
+        
+        profile_response = supabase_pomodoro.table("profiles").insert(profile_data).execute()
+        
+        if profile_response.data and len(profile_response.data) > 0:
+            print(f"Successfully created profile: {profile_response.data[0]}")
+        else:
+            print("No data returned when creating profile")
+    except Exception as e:
+        print(f"Failed to create profile: {e}")
 
-print("\n=== Test Complete ===")
+# 3. Create a task for the user
+if user_id:
+    print("\nCreating a task for the user")
+    try:
+        task_data = {
+            "title": "Test Task",
+            "description": "This is a test task created by the connection test script",
+            "user_id": user_id,
+            "estimated_pomodoros": 3,
+            "completed_pomodoros": 0,
+            "is_active": True,
+            "position": 1,
+            "created_at": datetime.utcnow().isoformat()
+        }
+        
+        task_response = supabase_pomodoro.table("tasks").insert(task_data).execute()
+        
+        if task_response.data and len(task_response.data) > 0:
+            task_id = task_response.data[0]['id']
+            print(f"Successfully created task with ID: {task_id}")
+        else:
+            print("No data returned when creating task")
+            task_id = None
+    except Exception as e:
+        print(f"Failed to create task: {e}")
+        task_id = None
+
+# 4. Log in with the created user
+print("\nLogging in with the created user")
+try:
+    auth_client = create_client(supabase_url, os.getenv("ANON_KEY"))
+    login_response = auth_client.auth.sign_in_with_password({
+        "email": test_email,
+        "password": test_password
+    })
+    
+    if login_response.user:
+        print(f"Successfully logged in as: {login_response.user.email}")
+        logged_in_user_id = login_response.user.id
+        user_token = login_response.session.access_token if login_response.session else None
+        
+        # Create a client with the user's JWT
+        if user_token:
+            user_client = create_client(
+                supabase_url, 
+                os.getenv("ANON_KEY"),
+                options=ClientOptions(
+                    schema="pomodoro",
+                    headers={"Authorization": f"Bearer {user_token}"}
+                )
+            )
+            
+            # 5. Fetch the user's profile using their token
+            print("\nFetching profile using user's token")
+            try:
+                profile_response = user_client.table("profiles").select("*").eq("id", logged_in_user_id).execute()
+                
+                if profile_response.data and len(profile_response.data) > 0:
+                    print(f"Successfully fetched user profile: {profile_response.data[0]}")
+                else:
+                    print("No profile found for the user")
+            except Exception as e:
+                print(f"Failed to fetch profile with user token: {e}")
+                
+            # 6. Fetch the user's tasks
+            if task_id:
+                print("\nFetching user's tasks")
+                try:
+                    tasks_response = user_client.table("tasks").select("*").eq("user_id", logged_in_user_id).execute()
+                    
+                    if tasks_response.data and len(tasks_response.data) > 0:
+                        print(f"Successfully fetched user tasks: {tasks_response.data}")
+                    else:
+                        print("No tasks found for the user")
+                except Exception as e:
+                    print(f"Failed to fetch tasks: {e}")
+        else:
+            print("No access token available after login")
+    else:
+        print("Failed to get user from login response")
+except Exception as e:
+    print(f"Failed to log in: {e}")
+
+print("\n--- TEST COMPLETED ---")
