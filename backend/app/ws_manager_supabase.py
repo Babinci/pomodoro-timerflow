@@ -73,14 +73,31 @@ class ConnectionManager:
 
     async def disconnect(self, websocket: WebSocket, user_id: str):
         if user_id in self.active_connections:
-            self.active_connections[user_id].remove(websocket)
-            if not self.active_connections[user_id]:
-                del self.active_connections[user_id]
+            try:
+                self.active_connections[user_id].remove(websocket)
+                if not self.active_connections[user_id]:
+                    del self.active_connections[user_id]
+            except Exception as e:
+                logger.error(f"Error during disconnect: {str(e)}")
 
     def start_timer(self, user_id: str, task_id: int, session_type: str, duration: int, preset_type: str = 'short', user_settings: dict = None):
         """Start a new timer session with user's settings"""
         if not user_settings:
-            raise ValueError("User settings are required")
+            # Default settings if none provided
+            user_settings = {
+                "short": {
+                    "work_duration": 25,
+                    "short_break": 5,
+                    "long_break": 15,
+                    "sessions_before_long_break": 4
+                },
+                "long": {
+                    "work_duration": 50,
+                    "short_break": 10,
+                    "long_break": 30,
+                    "sessions_before_long_break": 4
+                }
+            }
         
         # Preserve round_number if exists, otherwise default to 1
         current_round = 1
@@ -124,7 +141,7 @@ class ConnectionManager:
         current_preset = state.preset_type  # Store current preset type
 
         # If it was a work session, update the task completion
-        if current_session == 'work':
+        if current_session == 'work' and state.task_id is not None:
             try:
                 task_id = state.task_id
                 # Get current completed pomodoros
@@ -167,8 +184,8 @@ class ConnectionManager:
         if user_id not in self.timer_states:
             # If there's no active timer state, create a default one
             try:
-                # Get user settings
-                user_response = supabase.table("users").select("pomodoro_settings").eq("id", user_id).execute()
+                # Get user settings from profiles table
+                user_response = supabase.table("profiles").select("pomodoro_settings").eq("id", user_id).execute()
                 if user_response.data and len(user_response.data) > 0:
                     user_settings = user_response.data[0]["pomodoro_settings"]
                     preset_type = 'short'  # Default preset
@@ -189,6 +206,30 @@ class ConnectionManager:
                     return
             except Exception as e:
                 logger.error(f"Error creating default timer state: {str(e)}")
+                # Create a timer state with default settings
+                default_settings = {
+                    "short": {
+                        "work_duration": 25,
+                        "short_break": 5,
+                        "long_break": 15,
+                        "sessions_before_long_break": 4
+                    },
+                    "long": {
+                        "work_duration": 50,
+                        "short_break": 10,
+                        "long_break": 30,
+                        "sessions_before_long_break": 4
+                    }
+                }
+                
+                self.timer_states[user_id] = TimerState(
+                    task_id=None,
+                    session_type='work',
+                    time_remaining=25 * 60,  # 25 minutes in seconds
+                    user_settings=default_settings,
+                    preset_type='short'
+                )
+                self.timer_states[user_id].is_paused = True
         else:
             # Reset existing timer state
             state = self.timer_states[user_id]
@@ -210,8 +251,8 @@ class ConnectionManager:
         state = self.timer_states[user_id]
         current_session = state.session_type
 
-        # Update task completion if it was a work session
-        if current_session == 'work':
+        # Update task completion if it was a work session and task_id is not None
+        if current_session == 'work' and state.task_id is not None:
             try:
                 task_id = state.task_id
                 # Get current completed pomodoros
@@ -298,11 +339,15 @@ class ConnectionManager:
             for connection in self.active_connections[user_id]:
                 try:
                     await connection.send_json(message)
-                except:
+                except Exception as e:
+                    logger.error(f"Error broadcasting to user: {str(e)}")
                     dead_connections.add(connection)
 
             # Clean up dead connections
             for dead in dead_connections:
-                await self.disconnect(dead, user_id)
+                try:
+                    await self.disconnect(dead, user_id)
+                except Exception as e:
+                    logger.error(f"Error during cleanup: {str(e)}")
 
 manager = ConnectionManager()

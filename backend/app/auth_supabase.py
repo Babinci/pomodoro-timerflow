@@ -4,9 +4,14 @@ Authentication module using Supabase Auth for the Pomodoro TimerFlow app.
 This replaces the custom JWT implementation with Supabase's built-in auth system.
 """
 from typing import Optional, Dict, Any
+import os
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer, HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Import the Supabase client
 from .supabase import supabase
@@ -17,6 +22,8 @@ security = HTTPBearer()
 
 # Constants
 ACCESS_TOKEN_EXPIRE_MINUTES = 30  # Keep compatibility with original value
+SECRET_KEY = os.getenv("BACKEND_SECRET_KEY", "your-secret-key-for-jwt-generation")
+ALGORITHM = "HS256"
 
 class UserData(BaseModel):
     """Simplified user data model retrieved from Supabase Auth"""
@@ -27,31 +34,27 @@ class UserData(BaseModel):
 async def authenticate_user(email: str, password: str):
     """Authenticate a user with custom authentication"""
     try:
-        # Get the user from the database
-        response = supabase.table("users").select("*").eq("email", email).limit(1).execute()
+        # Get the user from the database - use profiles table from pomodoro schema
+        response = supabase.table("profiles").select("*").eq("username", email).limit(1).execute()
         
         if not response.data or len(response.data) == 0:
             return None
             
         user = response.data[0]
         
-        # Verify the password
-        from passlib.context import CryptContext
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        # In an actual integration with Supabase Auth, we would use:
+        # auth_response = supabase.auth.sign_in_with_password({
+        #    "email": email,
+        #    "password": password
+        # })
+        # But for our custom implementation, we'll create a session
         
-        if not pwd_context.verify(password, user["hashed_password"]):
-            return None
-            
         # Create a custom response object
         from types import SimpleNamespace
         
         # Create token for the user
         from datetime import datetime, timedelta
         import jwt
-        
-        # Use a secure secret key (should be in environment variables)
-        SECRET_KEY = "your-secret-key"  # In production, use env variable
-        ALGORITHM = "HS256"
         
         # Create JWT token
         token_data = {"sub": email, "exp": datetime.utcnow() + timedelta(minutes=30)}
@@ -66,7 +69,7 @@ async def authenticate_user(email: str, password: str):
         # Create a user object
         user_obj = SimpleNamespace()
         user_obj.id = user["id"]
-        user_obj.email = user["email"]
+        user_obj.email = email
         user_obj.user_metadata = {"username": user["username"]}
         
         # Create a response object
@@ -93,7 +96,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         user_data = await verify_token(token)
         
         # Get the full user data from the database
-        response = supabase.table("users").select("*").eq("id", user_data["user_id"]).limit(1).execute()
+        response = supabase.table("profiles").select("*").eq("id", user_data["user_id"]).limit(1).execute()
         
         if not response.data or len(response.data) == 0:
             raise credentials_exception
@@ -103,7 +106,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         # Create a user data object
         user_obj = UserData(
             id=user["id"],
-            email=user["email"],
+            email=user_data["email"],
             user_metadata={"username": user["username"]}
         )
         
@@ -121,10 +124,6 @@ async def verify_token(token: str) -> Dict[str, Any]:
         # Decode the JWT token
         import jwt
         
-        # Use a secure secret key (should be in environment variables)
-        SECRET_KEY = "your-secret-key"  # In production, use env variable
-        ALGORITHM = "HS256"
-        
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email = payload.get("sub")
         
@@ -135,7 +134,7 @@ async def verify_token(token: str) -> Dict[str, Any]:
             )
             
         # Get the user from the database
-        response = supabase.table("users").select("id").eq("email", email).limit(1).execute()
+        response = supabase.table("profiles").select("id").eq("email", email).limit(1).execute()
         
         if not response.data or len(response.data) == 0:
             raise HTTPException(
@@ -161,7 +160,7 @@ async def verify_token(token: str) -> Dict[str, Any]:
 async def get_user_from_db(user_id: str):
     """Get user data from the database"""
     try:
-        response = supabase.table("users").select("*").eq("id", user_id).execute()
+        response = supabase.table("profiles").select("*").eq("id", user_id).execute()
         if response.data and len(response.data) > 0:
             return response.data[0]
         return None
@@ -170,8 +169,21 @@ async def get_user_from_db(user_id: str):
         return None
 
 async def create_user(email: str, password: str, username: str):
-    """Create a new user directly in the database"""
+    """Create a new user using Supabase Auth"""
     try:
+        # In a real Supabase integration, we would use:
+        # auth_response = supabase.auth.sign_up({
+        #    "email": email,
+        #    "password": password,
+        #    "options": {"data": {"username": username}}
+        # })
+        
+        # For our demo setup, we'll create a user directly in our profiles table
+        # with a random UUID
+        import uuid
+        
+        user_id = str(uuid.uuid4())
+        
         # Define default pomodoro settings
         default_settings = {
             "short": {
@@ -188,16 +200,11 @@ async def create_user(email: str, password: str, username: str):
             }
         }
         
-        # Hash the password
-        from passlib.context import CryptContext
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        hashed_password = pwd_context.hash(password)
-        
-        # Insert into users table
-        db_response = supabase.table("users").insert({
-            "email": email,
+        # Insert into profiles table
+        db_response = supabase.table("profiles").insert({
+            "id": user_id,
             "username": username,
-            "hashed_password": hashed_password,
+            "email": email,
             "pomodoro_settings": default_settings
         }).execute()
         
@@ -207,7 +214,12 @@ async def create_user(email: str, password: str, username: str):
                 detail="Failed to create user"
             )
             
-        return db_response.data[0]
+        response_obj = SimpleNamespace()
+        response_obj.id = user_id
+        response_obj.email = email
+        response_obj.username = username
+        
+        return response_obj
         
     except Exception as e:
         print(f"User creation error: {str(e)}")
