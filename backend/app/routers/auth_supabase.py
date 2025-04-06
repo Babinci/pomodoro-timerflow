@@ -5,7 +5,7 @@ from datetime import timedelta
 import logging
 from .. import schemas
 from ..auth_supabase import authenticate_user, get_current_user, verify_token, ACCESS_TOKEN_EXPIRE_MINUTES
-from ..supabase import get_anon_client
+from ..supabase import get_anon_client, supabase
 
 router = APIRouter(tags=["authentication"])
 logger = logging.getLogger(__name__)
@@ -95,16 +95,18 @@ async def signup(user_data: schemas.UserCreate):
     """Register a new user"""
     try:
         # Create a client with the anon key
-        auth_client = get_anon_client()
+        # auth_client = get_anon_client()
+        auth_client = supabase
         
-        # Use Supabase's sign up endpoint
+        # Use Supabase's sign up endpoint with email confirmation disabled
         response = auth_client.auth.sign_up({
             "email": user_data.email,
             "password": user_data.password,
             "options": {
                 "data": {
                     "username": user_data.username
-                }
+                },
+                "email_confirm": False  # Disable email confirmation
             }
         })
         

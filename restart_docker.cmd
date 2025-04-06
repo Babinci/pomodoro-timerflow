@@ -5,9 +5,10 @@ docker rm pomodoro-app-container 2>NUL
 docker build -t pomodoro-app .
 if not exist logs mkdir logs
 
-REM Run with only the necessary mounts for Supabase
+REM Run with the .env file from the project root mounted to /app/.env
 docker run -d -p 8003:8003 ^
   -v %cd%\logs:/app/logs ^
+  -v %cd%\.env:/app/.env ^
   --name pomodoro-app-container pomodoro-app
 
 REM Wait for container to start
