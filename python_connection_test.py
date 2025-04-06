@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from supabase.client import ClientOptions
 load_dotenv(r"C:\Users\walko\IT_projects\Supabase_with_mcp\supabase\docker\.env")
 
+env2path = ".env"
 
 supabase_url = "http://localhost:8000"
 # supabase_key = os.getenv("ANON_KEY")

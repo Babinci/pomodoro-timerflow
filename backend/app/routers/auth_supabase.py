@@ -2,11 +2,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
+import logging
 from .. import schemas
 from ..auth_supabase import authenticate_user, get_current_user, verify_token, ACCESS_TOKEN_EXPIRE_MINUTES
-from ..supabase import supabase
+from ..supabase import get_anon_client
 
 router = APIRouter(tags=["authentication"])
+logger = logging.getLogger(__name__)
 
 @router.post("/token")
 async def login_for_access_token(
@@ -40,15 +42,28 @@ async def login_for_access_token(
 async def refresh_access_token(refresh_token: str):
     """Refresh an expired access token"""
     try:
-        # For now, we don't have refresh tokens implemented
-        # In a production environment, you would validate the refresh token
-        # and issue a new access token
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Token refresh not implemented in this version",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        # Create a client with the anon key
+        auth_client = get_anon_client()
+        
+        # Use Supabase's refresh token endpoint
+        response = auth_client.auth.refresh_session(refresh_token)
+        
+        if not response or not response.session:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+            
+        session = response.session
+        return {
+            "access_token": session.access_token,
+            "token_type": "bearer",
+            "refresh_token": session.refresh_token,
+            "expires_at": session.expires_at
+        }
     except Exception as e:
+        logger.error(f"Token refresh error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid refresh token: {str(e)}",
@@ -64,11 +79,51 @@ async def verify_token_endpoint(current_user = Depends(get_current_user)):
 async def logout(response: Response):
     """Log the user out by invalidating the session"""
     try:
-        supabase.auth.sign_out()
+        auth_client = get_anon_client()
+        auth_client.auth.sign_out()
         response.delete_cookie(key="refreshToken")
         return {"status": "success"}
     except Exception as e:
+        logger.error(f"Logout error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Logout failed: {str(e)}"
+        )
+
+@router.post("/signup")
+async def signup(user_data: schemas.UserCreate):
+    """Register a new user"""
+    try:
+        # Create a client with the anon key
+        auth_client = get_anon_client()
+        
+        # Use Supabase's sign up endpoint
+        response = auth_client.auth.sign_up({
+            "email": user_data.email,
+            "password": user_data.password,
+            "options": {
+                "data": {
+                    "username": user_data.username
+                }
+            }
+        })
+        
+        if not response or not response.user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to register user"
+            )
+            
+        # Return user data without sensitive information
+        return {
+            "id": response.user.id,
+            "email": response.user.email,
+            "username": user_data.username,
+            "confirmed": response.user.email_confirmed_at is not None
+        }
+    except Exception as e:
+        logger.error(f"Signup error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to register user: {str(e)}"
         )
